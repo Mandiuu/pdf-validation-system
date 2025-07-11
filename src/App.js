@@ -265,7 +265,6 @@ const PDFDateValidationApp = () => {
 
       // Extract project information using improved regex patterns
       // Clean the text and split into lines for better parsing
-      const lines = pdfContent.fullText.split(/[\r\n]+/).map(line => line.trim()).filter(line => line.length > 0);
       const cleanText = pdfContent.fullText.replace(/\s+/g, ' ').trim();
       
       // Project name patterns - look for "Casa hermanos" specifically
