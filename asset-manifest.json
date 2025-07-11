@@ -1,0 +1,15 @@
+{
+  "files": {
+    "main.css": "/pdf-validation-system/static/css/main.e6c13ad2.css",
+    "main.js": "/pdf-validation-system/static/js/main.9aa32e1c.js",
+    "static/js/453.8181640d.chunk.js": "/pdf-validation-system/static/js/453.8181640d.chunk.js",
+    "index.html": "/pdf-validation-system/index.html",
+    "main.e6c13ad2.css.map": "/pdf-validation-system/static/css/main.e6c13ad2.css.map",
+    "main.9aa32e1c.js.map": "/pdf-validation-system/static/js/main.9aa32e1c.js.map",
+    "453.8181640d.chunk.js.map": "/pdf-validation-system/static/js/453.8181640d.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.e6c13ad2.css",
+    "static/js/main.9aa32e1c.js"
+  ]
+}
