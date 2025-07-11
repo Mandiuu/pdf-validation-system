@@ -247,7 +247,7 @@ const PDFDateValidationApp = () => {
     try {
       // Extract actual text content from PDF
       const pdfContent = await extractTextFromPDF(file);
-      const text = pdfContent.fullText.toLowerCase();
+
       
       // Initialize extracted data
       const extractedData = {
@@ -438,14 +438,13 @@ const PDFDateValidationApp = () => {
       }
 
       // Sheet number patterns - look for specific formats
+      // Find this section and remove backslashes before forward slashes:
       const sheetPatterns = [
-        // Look for sheet numbers in title blocks
-        /l[aá]mina[:\s]*(\d+[-\/]?\w*)/i,
-        /hoja[:\s]*(\d+[-\/]?\w*)/i,
-        // Look for standalone numbers that could be sheet numbers
-        /\b(\d+)\b(?=\s*$)/m, // Number at end of line
-        /\b(\d{1,2}[-\/]\w+)\b/g // Pattern like "14" or "6-S8"
-      ];
+      /l[aá]mina[:\s]*(\d+[-/]?\w*)/i,        // removed backslash before /
+      /hoja[:\s]*(\d+[-/]?\w*)/i,             // removed backslash before /
+      /\b(\d+)\b(?=\s*$)/m,
+      /\b(\d{1,2}[-/]\w+)\b/g                 // removed backslash before /
+    ];
       
       for (const pattern of sheetPatterns) {
         const match = cleanText.match(pattern);
