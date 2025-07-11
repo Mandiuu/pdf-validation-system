@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   Upload, FileText, CheckCircle, AlertTriangle, 
-  X, Eye, Download, Calendar, Building
+  X, Eye, Calendar, Building
 } from 'lucide-react';
 
 const PDFDateValidationApp = () => {
