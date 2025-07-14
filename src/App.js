@@ -74,11 +74,6 @@ const PDFDateValidationApp = () => {
       return;
     }
 
-    if (pdfFiles.length > 10) {
-      alert('Por favor selecciona máximo 10 archivos PDF a la vez');
-      return;
-    }
-
     setUploadedFiles(pdfFiles);
     setIsValidating(true);
     setValidationProgress({ current: 0, total: pdfFiles.length });
@@ -700,8 +695,8 @@ const PDFDateValidationApp = () => {
             <div className="flex items-center">
               <Building className="h-8 w-8 text-indigo-600 mr-3" />
               <div>
-                <h1 className="text-xl font-semibold text-gray-900">Validación Real de PDFs Arquitectónicos</h1>
-                <p className="text-sm text-gray-500">Extrae y valida contenido real de archivos PDF usando PDF.js</p>
+                <h1 className="text-xl font-semibold text-gray-900">Validación de PDFs Arquitectónicos</h1>
+                <p className="text-sm text-gray-500">Extrae y valida contenido de archivos PDF usando PDF.js</p>
               </div>
             </div>
             {validationResults.length > 0 && (
@@ -760,7 +755,7 @@ const PDFDateValidationApp = () => {
                 <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
                 <div className="space-y-2">
                   <p className="text-lg text-gray-600">Selecciona archivos PDF arquitectónicos</p>
-                  <p className="text-sm text-gray-500">El sistema extraerá contenido real usando PDF.js (máximo 10 archivos, 50MB cada uno)</p>
+                  <p className="text-sm text-gray-500">El sistema extraerá contenido real usando PDF.js (máximo 50MB por archivo)</p>
                 </div>
                 
                 <input
