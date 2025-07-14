@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   Upload, FileText, CheckCircle, AlertTriangle, 
-  X, Eye, Calendar, Building
+  X, Eye, Calendar, Building, RefreshCw
 } from 'lucide-react';
 
 const PDFDateValidationApp = () => {
@@ -12,41 +12,53 @@ const PDFDateValidationApp = () => {
   const [validationProgress, setValidationProgress] = useState({ current: 0, total: 0 });
   const [pdfJsLoaded, setPdfJsLoaded] = useState(false);
   const [loadError, setLoadError] = useState(null);
+  const [isLoadingPdfJs, setIsLoadingPdfJs] = useState(false);
   const fileInputRef = useRef(null);
 
   // Load PDF.js dynamically from CDN
   useEffect(() => {
-    const loadPdfJs = async () => {
-      try {
-        // Check if PDF.js is already loaded
+    loadPdfJs();
+  }, []);
+
+  const loadPdfJs = async () => {
+    try {
+      setIsLoadingPdfJs(true);
+      setLoadError(null);
+
+      // Check if PDF.js is already loaded
+      if (window.pdfjsLib) {
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        setPdfJsLoaded(true);
+        setIsLoadingPdfJs(false);
+        return;
+      }
+
+      // Load PDF.js from CDN
+      const script = document.createElement('script');
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+      
+      script.onload = () => {
         if (window.pdfjsLib) {
           window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
           setPdfJsLoaded(true);
-          return;
+          setLoadError(null);
+        } else {
+          setLoadError('PDF.js failed to initialize properly');
         }
-
-        // Load PDF.js from CDN
-        const script = document.createElement('script');
-        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
-        script.onload = () => {
-          if (window.pdfjsLib) {
-            window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-            setPdfJsLoaded(true);
-          } else {
-            setLoadError('PDF.js failed to load properly');
-          }
-        };
-        script.onerror = () => {
-          setLoadError('Failed to load PDF.js from CDN');
-        };
-        document.head.appendChild(script);
-      } catch (error) {
-        setLoadError(`Error loading PDF.js: ${error.message}`);
-      }
-    };
-
-    loadPdfJs();
-  }, []);
+        setIsLoadingPdfJs(false);
+      };
+      
+      script.onerror = () => {
+        setLoadError('Failed to load PDF.js from CDN');
+        setIsLoadingPdfJs(false);
+      };
+      
+      document.head.appendChild(script);
+    } catch (error) {
+      setLoadError(`Error loading PDF.js: ${error.message}`);
+      setIsLoadingPdfJs(false);
+    }
+  };
 
   const handleFileUpload = async (event) => {
     if (!pdfJsLoaded) {
@@ -59,6 +71,11 @@ const PDFDateValidationApp = () => {
     
     if (pdfFiles.length === 0) {
       alert('Por favor selecciona solo archivos PDF');
+      return;
+    }
+
+    if (pdfFiles.length > 10) {
+      alert('Por favor selecciona máximo 10 archivos PDF a la vez');
       return;
     }
 
@@ -103,12 +120,16 @@ const PDFDateValidationApp = () => {
   };
 
   const readPDFFile = async (file) => {
+    if (file.size > 50 * 1024 * 1024) { // 50MB limit
+      throw new Error('El archivo es demasiado grande (máximo 50MB)');
+    }
+
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = function(e) {
         resolve(new Uint8Array(e.target.result));
       };
-      reader.onerror = reject;
+      reader.onerror = () => reject(new Error('Error al leer el archivo'));
       reader.readAsArrayBuffer(file);
     });
   };
@@ -122,36 +143,53 @@ const PDFDateValidationApp = () => {
       // Read file as array buffer
       const arrayBuffer = await readPDFFile(file);
       
-      // Load PDF document
-      const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      // Load PDF document with timeout
+      const loadingTask = window.pdfjsLib.getDocument({ 
+        data: arrayBuffer,
+        disableStream: true,
+        disableAutoFetch: true
+      });
+      
+      const pdf = await Promise.race([
+        loadingTask.promise,
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Timeout loading PDF')), 30000)
+        )
+      ]);
       
       let fullText = '';
       const pageTexts = [];
-      const textItems = []; // Store text with coordinates
+      const textItems = [];
+      const maxPages = Math.min(pdf.numPages, 20); // Limit to first 20 pages for performance
       
       // Extract text from each page
-      for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-        const page = await pdf.getPage(pageNum);
-        const textContent = await page.getTextContent();
-        
-        const pageText = textContent.items
-          .map(item => item.str)
-          .join(' ');
-        
-        // Extract text items with positioning data
-        const pageTextItems = textContent.items.map(item => ({
-          text: item.str,
-          x: item.transform[4],
-          y: item.transform[5],
-          width: item.width,
-          height: item.height,
-          fontName: item.fontName,
-          fontSize: item.transform[0] // Font size is in transform matrix
-        }));
-        
-        pageTexts.push(pageText);
-        textItems.push(...pageTextItems);
-        fullText += pageText + '\n';
+      for (let pageNum = 1; pageNum <= maxPages; pageNum++) {
+        try {
+          const page = await pdf.getPage(pageNum);
+          const textContent = await page.getTextContent();
+          
+          const pageText = textContent.items
+            .map(item => item.str)
+            .join(' ');
+          
+          // Extract text items with positioning data
+          const pageTextItems = textContent.items.map(item => ({
+            text: item.str,
+            x: item.transform[4],
+            y: item.transform[5],
+            width: item.width,
+            height: item.height,
+            fontName: item.fontName,
+            fontSize: item.transform[0]
+          }));
+          
+          pageTexts.push(pageText);
+          textItems.push(...pageTextItems);
+          fullText += pageText + '\n';
+        } catch (pageError) {
+          console.warn(`Error processing page ${pageNum}:`, pageError);
+          // Continue with other pages
+        }
       }
       
       // Analyze layout for alignment issues
@@ -163,7 +201,8 @@ const PDFDateValidationApp = () => {
         textItems,
         layoutAnalysis,
         numPages: pdf.numPages,
-        metadata: await pdf.getMetadata()
+        processedPages: maxPages,
+        metadata: await pdf.getMetadata().catch(() => null)
       };
       
     } catch (error) {
@@ -174,16 +213,26 @@ const PDFDateValidationApp = () => {
 
   const analyzeLayoutAlignment = (textItems) => {
     console.log('DEBUG - Analyzing layout alignment...');
-    console.log('DEBUG - Text items with coordinates:', textItems.slice(0, 10)); // Show first 10 items
+    console.log('DEBUG - Text items count:', textItems.length);
     
     const issues = [];
-    const alignmentTolerance = 2; // pixels
+    const alignmentTolerance = 2;
+    
+    if (textItems.length === 0) {
+      issues.push('No text items found for alignment analysis');
+      return {
+        hasAlignmentIssues: true,
+        formattingProblems: issues,
+        titleBlockItemCount: 0,
+        totalTextItems: 0
+      };
+    }
     
     // Group text items by approximate Y coordinate (horizontal alignment)
     const lineGroups = {};
     textItems.forEach(item => {
-      if (item.text.trim().length > 0) {
-        const roundedY = Math.round(item.y / 5) * 5; // Group by 5-pixel bands
+      if (item.text && item.text.trim().length > 0) {
+        const roundedY = Math.round(item.y / 5) * 5;
         if (!lineGroups[roundedY]) {
           lineGroups[roundedY] = [];
         }
@@ -191,47 +240,38 @@ const PDFDateValidationApp = () => {
       }
     });
     
-    // Check for alignment issues in title block area (approximate coordinates)
+    // Check for alignment issues in title block area
     const titleBlockItems = textItems.filter(item => {
-      // Approximate title block area - adjust these coordinates based on your PDFs
-      return item.y > 50 && item.y < 200 && item.x > 400; // Right side of page
+      return item.y > 50 && item.y < 200 && item.x > 400;
     });
     
     console.log('DEBUG - Title block items found:', titleBlockItems.length);
     
     if (titleBlockItems.length > 0) {
-      // Check for text that seems misaligned
       const leftAlignedItems = titleBlockItems.filter(item => {
-        // Look for items that should be left-aligned in fields
-        return item.text.match(/^(Arquitecto|Proyecto|Propietario|Escala|Fecha|Lamina)/i);
+        return item.text && item.text.match(/^(Arquitecto|Proyecto|Propietario|Escala|Fecha|Lamina)/i);
       });
       
       if (leftAlignedItems.length > 1) {
-        // Check if all left-aligned items have similar X coordinates
         const xCoords = leftAlignedItems.map(item => item.x);
         const minX = Math.min(...xCoords);
         const maxX = Math.max(...xCoords);
         
         console.log('DEBUG - Left-aligned X coordinates:', xCoords);
-        console.log('DEBUG - X coordinate range:', minX, 'to', maxX);
         
         if (maxX - minX > alignmentTolerance * 3) {
           issues.push('Inconsistent left alignment in title block fields');
         }
       }
       
-      // Check for text that appears outside expected boundaries
       const suspiciousItems = titleBlockItems.filter(item => {
-        // Flag items that seem to be positioned unusually
-        return item.text.length > 3 && (
-          item.x < 50 || // Too far left
-          item.x > 800   // Too far right for most PDFs
+        return item.text && item.text.length > 3 && (
+          item.x < 50 || item.x > 800
         );
       });
       
       if (suspiciousItems.length > 0) {
         issues.push(`Text elements positioned outside expected boundaries: ${suspiciousItems.length} items`);
-        console.log('DEBUG - Suspicious positioned items:', suspiciousItems);
       }
     }
     
@@ -245,11 +285,8 @@ const PDFDateValidationApp = () => {
 
   const analyzeArchitecturalPDF = async (file) => {
     try {
-      // Extract actual text content from PDF
       const pdfContent = await extractTextFromPDF(file);
-
       
-      // Initialize extracted data
       const extractedData = {
         projectName: '',
         architect: '',
@@ -260,14 +297,12 @@ const PDFDateValidationApp = () => {
         sheet: '',
         documentType: '',
         scale: '',
-        rawText: pdfContent.fullText // Store for debugging
+        rawText: pdfContent.fullText
       };
 
-      // Extract project information using improved regex patterns
-      // Clean the text and split into lines for better parsing
       const cleanText = pdfContent.fullText.replace(/\s+/g, ' ').trim();
       
-      // Project name patterns - look for "Casa hermanos" specifically
+      // Extract project information
       const projectPatterns = [
         /\bCasa\s+hermanos\b/i,
         /proyecto[:\s]*([^,\n\r]*casa[^,\n\r]*)/i,
@@ -282,13 +317,10 @@ const PDFDateValidationApp = () => {
         }
       }
 
-      // Architect name patterns - specifically look for "Javier Andrés Moya Ortiz"
+      // Architect name patterns
       const architectPatterns = [
-        // Look for the exact name pattern
         /\bJavier\s+Andr[eé]s\s+Moya\s+Ortiz\b/i,
-        // Look for name after "Arquitecto" label
         /arquitecto[:\s]*([^,\n\r]*Javier[^,\n\r]*)/i,
-        // Look for variations
         /\bJavier\s+Andr[eé]s\s+(?:Moya\s+)?Ortiz\b/i
       ];
       
@@ -296,7 +328,6 @@ const PDFDateValidationApp = () => {
         const match = cleanText.match(pattern);
         if (match) {
           if (match[1]) {
-            // Extract just the name part, clean up extra words
             const nameMatch = match[1].match(/Javier\s+Andr[eé]s\s+(?:Moya\s+)?Ortiz/i);
             extractedData.architect = nameMatch ? nameMatch[0].trim() : match[1].trim();
           } else {
@@ -306,12 +337,10 @@ const PDFDateValidationApp = () => {
         }
       }
 
-      // Owner/Client patterns - look for names after "Propietario"
+      // Owner patterns
       const ownerPatterns = [
-        // Look for specific names we expect
         /\bOmar\s+Andr[eé]s\s+Param\s+Abu-ghosh\b/i,
         /\bNicol[aá]s\s+Andr[eé]s\s+Param\s+Abu-ghosh\b/i,
-        // General pattern after "Propietario"
         /propietario[:\s]*([^,\n\r]*(?:Omar|Nicolás)[^,\n\r]*)/i
       ];
       
@@ -329,7 +358,7 @@ const PDFDateValidationApp = () => {
         extractedData.owner = foundOwners.join(', ');
       }
 
-      // Address patterns - look for street addresses
+      // Address patterns
       const addressPatterns = [
         /\bMonse[ñn]or\s+Adolfo\s+Rodriguez\s+\d+/i,
         /direcci[oó]n[:\s]*([^,\n\r]*\d{4,}[^,\n\r]*)/i
@@ -343,49 +372,31 @@ const PDFDateValidationApp = () => {
         }
       }
 
-      // ENHANCED DATE EXTRACTION WITH ULTRA-SPECIFIC DEBUGGING
+      // Enhanced date extraction
       console.log('DEBUG - STARTING ENHANCED DATE EXTRACTION');
-      console.log('DEBUG - Full PDF text length:', pdfContent.fullText.length);
-      console.log('DEBUG - Clean text sample (first 2000 chars):', cleanText.substring(0, 2000));
       
-      // Look specifically for the revision pattern that should catch the error case
       const revisionPatterns = [
-        // Very specific pattern for the architectural revisions
         /(\d+\.?\d*)\s+(ANTEPROYECTO|PROYECTO\s*DEFINITIVO|MODIFICACI[OÓ]N\s*DE\s*PROYECTO)\s+(\d{1,2}\/\d{1,2}\/\d{4})/gi,
-        // More flexible pattern
         /(\d+\.?\d*)\s*[-\s]*(ANTEPROYECTO|PROYECTO.*?DEFINITIVO|MODIFICACI[OÓ]N.*?PROYECTO)\s*[-\s]*(\d{1,2}\/\d{1,2}\/\d{4})/gi,
-        // Ultra simple fallback - just look for any sequence of: digit(s) + space + text + space + date
         /(\d+\.?\d*)\s+([A-ZÁÉÍÓÚÑ][^0-9\n\r]*?)\s+(\d{1,2}\/\d{1,2}\/\d{4})/gi
       ];
       
       const foundRevisions = [];
       
-      // Try each pattern and show detailed results
       for (let patternIndex = 0; patternIndex < revisionPatterns.length; patternIndex++) {
         const pattern = revisionPatterns[patternIndex];
-        console.log(`DEBUG - TRYING PATTERN ${patternIndex + 1}:`, pattern.source);
-        
-        // Reset regex
         pattern.lastIndex = 0;
         let match;
         let matchCount = 0;
         
         while ((match = pattern.exec(cleanText)) !== null && matchCount < 50) {
           matchCount++;
-          console.log(`DEBUG - Pattern ${patternIndex + 1} - Match ${matchCount}:`, {
-            fullMatch: match[0],
-            number: match[1],
-            description: match[2], 
-            date: match[3],
-            position: match.index
-          });
           
           if (match.length >= 3) {
             const revisionNumber = match[1];
             const description = match[2];
             const date = match[3];
             
-            // Check if valid date
             if (/\d{1,2}\/\d{1,2}\/\d{4}/.test(date)) {
               foundRevisions.push({
                 number: revisionNumber,
@@ -395,23 +406,12 @@ const PDFDateValidationApp = () => {
                 patternUsed: patternIndex + 1,
                 position: match.index
               });
-              console.log(`DEBUG - Pattern ${patternIndex + 1} - ADDED REVISION:`, {
-                number: revisionNumber,
-                description: description.trim(),
-                date: date.trim(),
-                pattern: patternIndex + 1
-              });
             }
           }
         }
-        console.log(`DEBUG - Pattern ${patternIndex + 1} completed. Total matches: ${matchCount}`);
-        
-        // For this debugging, don't break early - let's see all matches
       }
       
-      console.log('DEBUG - ALL FOUND REVISIONS (before deduplication):', foundRevisions);
-      
-      // Now deduplicate and assign final revisions
+      // Deduplicate revisions
       const seenRevisions = new Set();
       const finalRevisions = [];
       
@@ -420,30 +420,24 @@ const PDFDateValidationApp = () => {
         if (!seenRevisions.has(revisionKey)) {
           finalRevisions.push(revision);
           seenRevisions.add(revisionKey);
-          console.log('DEBUG - FINAL REVISION ADDED:', revisionKey);
-        } else {
-          console.log('DEBUG - DUPLICATE REVISION SKIPPED:', revisionKey);
         }
       });
       
       extractedData.revisionDates = finalRevisions;
-      console.log('DEBUG - FINAL REVISIONS FOR VALIDATION:', finalRevisions);
-      console.log('DEBUG - FINAL REVISION COUNT:', finalRevisions.length);
       
-      // Look for title date separately
+      // Look for title date
       const titleDateMatch = cleanText.match(/(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)\s+\d{4}/i);
       if (titleDateMatch) {
         extractedData.titleDate = titleDateMatch[0];
       }
 
-      // Sheet number patterns - look for specific formats
-      // Find this section and remove backslashes before forward slashes:
+      // Sheet patterns
       const sheetPatterns = [
-      /l[aá]mina[:\s]*(\d+[-/]?\w*)/i,        // removed backslash before /
-      /hoja[:\s]*(\d+[-/]?\w*)/i,             // removed backslash before /
-      /\b(\d+)\b(?=\s*$)/m,
-      /\b(\d{1,2}[-/]\w+)\b/g                 // removed backslash before /
-    ];
+        /l[aá]mina[:\s]*(\d+[-/]?\w*)/i,
+        /hoja[:\s]*(\d+[-/]?\w*)/i,
+        /\b(\d+)\b(?=\s*$)/m,
+        /\b(\d{1,2}[-/]\w+)\b/g
+      ];
       
       for (const pattern of sheetPatterns) {
         const match = cleanText.match(pattern);
@@ -453,7 +447,7 @@ const PDFDateValidationApp = () => {
         }
       }
 
-      // Scale patterns - look for architectural scales
+      // Scale patterns
       const scalePatterns = [
         /escala?[:\s]*(1:\d+)/i,
         /esc[:\s.]*(\d+:\d+)/i,
@@ -474,12 +468,11 @@ const PDFDateValidationApp = () => {
       }
       
       if (foundScales.length > 0) {
-        // Prefer specific scales like 1:25, 1:50, etc.
         const specificScale = foundScales.find(scale => /1:\d+/.test(scale));
         extractedData.scale = specificScale || foundScales[0];
       }
 
-      // Document type based on content with better pattern matching
+      // Document type detection
       const documentTypePatterns = [
         { pattern: /detalle.*cocina/i, type: 'Detalle Cocina' },
         { pattern: /detalle.*ba[ñn]o/i, type: 'Detalle Baños' },
@@ -500,32 +493,25 @@ const PDFDateValidationApp = () => {
         }
       }
       
-      // If no specific type found, default
       if (!extractedData.documentType) {
         extractedData.documentType = 'Documento Arquitectónico';
       }
 
-      // Enhanced validation with layout and formatting checks
+      // Validation logic
       const errors = [];
       const warnings = [];
 
-      // 1. Enhanced architect name validation with specific error detection
+      // Architect name validation
       const standardArchitectName = 'Javier Andrés Moya Ortiz';
       if (extractedData.architect) {
-        // Clean the extracted name
         const cleanExtractedName = extractedData.architect
           .replace(/\s+/g, ' ')
           .replace(/[^\w\sñáéíóúü]/gi, '')
           .trim();
         
-        const cleanStandardName = standardArchitectName
-          .replace(/\s+/g, ' ')
-          .trim();
+        const cleanStandardName = standardArchitectName.replace(/\s+/g, ' ').trim();
         
-        // Check for exact match (case insensitive)
         if (cleanExtractedName.toLowerCase() !== cleanStandardName.toLowerCase()) {
-          
-          // Specific error detection for common typos
           if (cleanExtractedName.toLowerCase().includes('ortizs')) {
             errors.push({
               type: 'ARCHITECT_NAME_TYPO',
@@ -544,12 +530,6 @@ const PDFDateValidationApp = () => {
               message: '❌ ERROR EN NOMBRE DE ARQUITECTO: Nombre incompleto, falta "Moya"',
               details: `Encontrado: "${extractedData.architect}" | Completo: "${standardArchitectName}"`
             });
-          } else if (cleanExtractedName.toLowerCase().includes(cleanStandardName.toLowerCase())) {
-            warnings.push({
-              type: 'ARCHITECT_NAME_WARNING',
-              message: '⚠️ NOMBRE DE ARQUITECTO: Nombre correcto encontrado pero con texto adicional',
-              details: `Extraído: "${extractedData.architect}" | Se esperaba solo: "${standardArchitectName}"`
-            });
           } else {
             errors.push({
               type: 'ARCHITECT_NAME_ERROR',
@@ -566,7 +546,7 @@ const PDFDateValidationApp = () => {
         });
       }
 
-      // Validate project name
+      // Project name validation
       if (!extractedData.projectName || extractedData.projectName.length < 3) {
         warnings.push({
           type: 'PROJECT_NAME_WARNING',
@@ -575,51 +555,26 @@ const PDFDateValidationApp = () => {
         });
       }
 
-      // Validate dates
-      if (extractedData.revisionDates.length === 0 && !extractedData.titleDate) {
-        warnings.push({
-          type: 'DATE_WARNING',
-          message: '⚠️ FECHAS: No se pudieron extraer fechas automáticamente',
-          details: 'Verifique manualmente las fechas en el documento'
-        });
-      }
-
-      // ENHANCED DATE VALIDATION WITH SUPER DETAILED DEBUGGING
-      console.log('DEBUG - STARTING DATE VALIDATION');
-      console.log('DEBUG - Revisions to validate:', extractedData.revisionDates);
-      
+      // Date validation
       if (extractedData.revisionDates.length > 0) {
-        // Check for actual duplicate dates (same date appearing multiple times)
         const dateStrings = extractedData.revisionDates.map(rev => rev.date);
-        console.log('DEBUG - All extracted date strings:', dateStrings);
-        
         const dateCount = {};
         
-        // Count occurrences of each date
         dateStrings.forEach(date => {
           dateCount[date] = (dateCount[date] || 0) + 1;
         });
         
-        console.log('DEBUG - Date count breakdown:', dateCount);
-        
-        // Find actual duplicates (dates that appear more than once)
         const actualDuplicates = Object.keys(dateCount).filter(date => dateCount[date] > 1);
-        console.log('DEBUG - Dates that appear more than once:', actualDuplicates);
         
-        // ONLY flag if there are ACTUAL duplicate dates (same date used multiple times)
         if (actualDuplicates.length > 0) {
-          console.log('DEBUG - FLAGGING DUPLICATE DATE ERROR!');
           errors.push({
             type: 'DUPLICATE_DATES_ERROR',
             message: '❌ ERROR CRÍTICO DE FECHAS: Revisiones con fechas idénticas detectadas',
             details: `Fechas duplicadas encontradas: ${actualDuplicates.join(', ')}. Cada revisión debe tener una fecha única.`
           });
-        } else {
-          console.log('DEBUG - NO DUPLICATE DATES - All dates are unique');
         }
         
-        // Check for logical date progression issues
-        // 1. Check if PROYECTO DEFINITIVO and MODIFICACIÓN have the same date
+        // Check logical date progression
         const definitivo = extractedData.revisionDates.find(rev => 
           rev.description && rev.description.toLowerCase().includes('definitivo')
         );
@@ -627,19 +582,11 @@ const PDFDateValidationApp = () => {
           rev.description && rev.description.toLowerCase().includes('modificaci')
         );
         
-        console.log('DEBUG - Found DEFINITIVO revision:', definitivo);
-        console.log('DEBUG - Found MODIFICACIÓN revision:', modificacion);
-        
         if (definitivo && modificacion) {
           const definitivoDate = new Date(definitivo.date.split('/').reverse().join('-'));
           const modificacionDate = new Date(modificacion.date.split('/').reverse().join('-'));
           
-          console.log('DEBUG - DEFINITIVO date object:', definitivoDate);
-          console.log('DEBUG - MODIFICACIÓN date object:', modificacionDate);
-          console.log('DEBUG - Are dates equal?', definitivoDate.getTime() === modificacionDate.getTime());
-          
           if (definitivoDate.getTime() === modificacionDate.getTime()) {
-            console.log('DEBUG - FLAGGING SAME DATE LOGIC ERROR!');
             errors.push({
               type: 'SAME_DATE_LOGIC_ERROR',
               message: '❌ ERROR LÓGICO DE FECHAS: Proyecto definitivo y modificación tienen la misma fecha',
@@ -649,89 +596,28 @@ const PDFDateValidationApp = () => {
             errors.push({
               type: 'DATE_SEQUENCE_ERROR',
               message: '❌ ERROR LÓGICO DE FECHAS: Modificación anterior al proyecto definitivo',
-              details: `Modificación (${modificacion.date}) es anterior al proyecto definitivo (${definitivo.date}). La modificación debe ser posterior.`
-            });
-          }
-        } else {
-          console.log('DEBUG - Could not find both DEFINITIVO and MODIFICACIÓN revisions for comparison');
-        }
-        
-        // 2. Check for any revision that should logically come after another but has same or earlier date
-        const anteproyecto = extractedData.revisionDates.find(rev => 
-          rev.description && rev.description.toLowerCase().includes('anteproyecto')
-        );
-        
-        if (anteproyecto && definitivo) {
-          const anteproyectoDate = new Date(anteproyecto.date.split('/').reverse().join('-'));
-          const definitivoDate = new Date(definitivo.date.split('/').reverse().join('-'));
-          
-          if (definitivoDate <= anteproyectoDate) {
-            errors.push({
-              type: 'DATE_SEQUENCE_ERROR',
-              message: '❌ ERROR LÓGICO DE FECHAS: Proyecto definitivo no es posterior al anteproyecto',
-              details: `Anteproyecto (${anteproyecto.date}) y proyecto definitivo (${definitivo.date}). El proyecto definitivo debe ser posterior al anteproyecto.`
+              details: `Modificación (${modificacion.date}) es anterior al proyecto definitivo (${definitivo.date}).`
             });
           }
         }
-        
-        // Validate date formats
-        const invalidDates = extractedData.revisionDates.filter(rev => {
-          const dateRegex = /^\d{1,2}\/\d{1,2}\/\d{4}$/;
-          return !dateRegex.test(rev.date);
+      } else if (!extractedData.titleDate) {
+        warnings.push({
+          type: 'DATE_WARNING',
+          message: '⚠️ FECHAS: No se pudieron extraer fechas automáticamente',
+          details: 'Verifique manualmente las fechas en el documento'
         });
-        
-        if (invalidDates.length > 0) {
-          warnings.push({
-            type: 'DATE_FORMAT_WARNING',
-            message: '⚠️ FORMATO DE FECHA: Formato de fecha no estándar detectado',
-            details: `Fechas con formato irregular: ${invalidDates.map(d => d.date).join(', ')}`
-          });
-        }
       }
 
-      // Scale validation for specific document types
-      if (extractedData.documentType.includes('Detalle') && extractedData.scale) {
-        // Common architectural scales that are acceptable
-        const acceptableDetailScales = [
-          '1:1', '1:2', '1:5', '1:10', '1:20', '1:25', '1:50'
-        ];
-        
-        // Extract just the scale ratio from the text (e.g., "1:25" from "ESC 1:25")
-        const scaleMatch = extractedData.scale.match(/(1:\d+)/);
-        const scaleRatio = scaleMatch ? scaleMatch[1] : extractedData.scale;
-        
-        // Only flag if it's actually an unusual scale for details
-        if (!acceptableDetailScales.some(scale => scaleRatio.includes(scale))) {
-          warnings.push({
-            type: 'SCALE_WARNING',
-            message: '⚠️ ESCALA: Escala poco común para detalles',
-            details: `Encontrada: ${extractedData.scale}. Escalas comunes para detalles: 1:1, 1:2, 1:5, 1:10, 1:20, 1:25, 1:50`
-          });
-        }
-      }
-      
-      // General scale validation - flag unusual architectural scales
-      if (extractedData.scale) {
-        const commonArchScales = [
-          '1:1', '1:2', '1:5', '1:10', '1:20', '1:25', '1:50', 
-          '1:75', '1:100', '1:125', '1:150', '1:200', '1:250', 
-          '1:500', '1:750', '1:1000', '1:1250', '1:2500', '1:5000'
-        ];
-        
-        const scaleMatch = extractedData.scale.match(/(1:\d+)/);
-        const scaleRatio = scaleMatch ? scaleMatch[1] : extractedData.scale;
-        
-        // Only flag truly unusual scales
-        if (scaleRatio.includes('1:') && !commonArchScales.some(scale => scaleRatio.includes(scale))) {
-          warnings.push({
-            type: 'UNUSUAL_SCALE_WARNING',
-            message: '⚠️ ESCALA: Escala poco común en arquitectura',
-            details: `Encontrada: ${extractedData.scale}. Verifique que sea la escala correcta para este tipo de documento.`
-          });
-        }
+      // Layout issues
+      if (pdfContent.layoutAnalysis.hasAlignmentIssues) {
+        warnings.push({
+          type: 'LAYOUT_WARNING',
+          message: '⚠️ FORMATO: Posibles problemas de alineación detectados',
+          details: pdfContent.layoutAnalysis.formattingProblems.join('; ')
+        });
       }
 
-      // If very little text was extracted, flag as potential issue
+      // Low text content warning
       if (pdfContent.fullText.length < 100) {
         warnings.push({
           type: 'LOW_TEXT_WARNING',
@@ -739,9 +625,6 @@ const PDFDateValidationApp = () => {
           details: 'El PDF podría contener principalmente imágenes o texto no seleccionable'
         });
       }
-
-      console.log('DEBUG - FINAL ERRORS:', errors);
-      console.log('DEBUG - FINAL WARNINGS:', warnings);
 
       return {
         extractedData,
@@ -753,8 +636,10 @@ const PDFDateValidationApp = () => {
         status: errors.length > 0 ? 'rejected' : warnings.length > 0 ? 'warning' : 'approved',
         pdfInfo: {
           numPages: pdfContent.numPages,
+          processedPages: pdfContent.processedPages,
           fileSize: file.size,
-          textLength: pdfContent.fullText.length
+          textLength: pdfContent.fullText.length,
+          hasMetadata: !!pdfContent.metadata
         }
       };
 
@@ -791,16 +676,43 @@ const PDFDateValidationApp = () => {
     }
   };
 
+  const retryPdfJsLoad = () => {
+    setPdfJsLoaded(false);
+    setLoadError(null);
+    loadPdfJs();
+  };
+
+  const resetApp = () => {
+    setUploadedFiles([]);
+    setValidationResults([]);
+    setValidationProgress({ current: 0, total: 0 });
+    setShowFileDetail(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center py-4">
-            <Building className="h-8 w-8 text-indigo-600 mr-3" />
-            <div>
-              <h1 className="text-xl font-semibold text-gray-900">Validación Real de PDFs Arquitectónicos</h1>
-              <p className="text-sm text-gray-500">Extrae y valida contenido real de archivos PDF usando PDF.js</p>
+          <div className="flex items-center justify-between py-4">
+            <div className="flex items-center">
+              <Building className="h-8 w-8 text-indigo-600 mr-3" />
+              <div>
+                <h1 className="text-xl font-semibold text-gray-900">Validación Real de PDFs Arquitectónicos</h1>
+                <p className="text-sm text-gray-500">Extrae y valida contenido real de archivos PDF usando PDF.js</p>
+              </div>
             </div>
+            {validationResults.length > 0 && (
+              <button
+                onClick={resetApp}
+                className="flex items-center px-4 py-2 text-sm bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Nuevo Análisis
+              </button>
+            )}
           </div>
         </div>
       </header>
@@ -813,7 +725,7 @@ const PDFDateValidationApp = () => {
               <h2 className="text-2xl font-bold text-gray-900 mb-4">Cargar PDFs para Análisis Real</h2>
               
               {/* PDF.js Loading Status */}
-              {!pdfJsLoaded && !loadError && (
+              {isLoadingPdfJs && (
                 <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
                   <div className="flex items-center justify-center">
                     <div className="animate-spin h-5 w-5 border-2 border-blue-600 border-t-transparent rounded-full mr-3"></div>
@@ -824,10 +736,14 @@ const PDFDateValidationApp = () => {
 
               {loadError && (
                 <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
-                  <p className="text-red-800">Error cargando PDF.js: {loadError}</p>
-                  <p className="text-red-600 text-sm mt-2">
-                    Intenta recargar la página o verifica tu conexión a internet.
-                  </p>
+                  <p className="text-red-800 mb-3">Error cargando PDF.js: {loadError}</p>
+                  <button
+                    onClick={retryPdfJsLoad}
+                    className="inline-flex items-center px-3 py-2 text-sm bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+                  >
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Reintentar
+                  </button>
                 </div>
               )}
 
@@ -844,7 +760,7 @@ const PDFDateValidationApp = () => {
                 <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
                 <div className="space-y-2">
                   <p className="text-lg text-gray-600">Selecciona archivos PDF arquitectónicos</p>
-                  <p className="text-sm text-gray-500">El sistema extraerá contenido real usando PDF.js</p>
+                  <p className="text-sm text-gray-500">El sistema extraerá contenido real usando PDF.js (máximo 10 archivos, 50MB cada uno)</p>
                 </div>
                 
                 <input
@@ -858,9 +774,9 @@ const PDFDateValidationApp = () => {
                 
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  disabled={!pdfJsLoaded || loadError}
+                  disabled={!pdfJsLoaded || loadError || isLoadingPdfJs}
                   className={`mt-6 px-6 py-3 rounded-md transition-colors ${
-                    pdfJsLoaded && !loadError
+                    pdfJsLoaded && !loadError && !isLoadingPdfJs
                       ? 'bg-indigo-600 text-white hover:bg-indigo-700'
                       : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   }`}
@@ -910,10 +826,10 @@ const PDFDateValidationApp = () => {
           <div className="bg-white rounded-lg shadow p-8 text-center">
             <div className="animate-spin mx-auto h-12 w-12 border-4 border-blue-200 border-t-blue-600 rounded-full mb-4"></div>
             <h3 className="text-lg font-medium text-gray-900 mb-2">Extrayendo contenido real de PDFs...</h3>
-            <p className="text-gray-600">
+            <p className="text-gray-600 mb-4">
               Procesando archivo {validationProgress.current} de {validationProgress.total}
             </p>
-            <div className="w-full bg-gray-200 rounded-full h-2 mt-4">
+            <div className="w-full bg-gray-200 rounded-full h-2">
               <div 
                 className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
                 style={{ width: `${(validationProgress.current / validationProgress.total) * 100}%` }}
@@ -988,10 +904,11 @@ const PDFDateValidationApp = () => {
                         </div>
                         
                         {result.pdfInfo && (
-                          <div className="text-sm text-gray-600 mb-3">
-                            <span className="font-medium">Páginas:</span> {result.pdfInfo.numPages} | 
-                            <span className="font-medium ml-2">Tamaño:</span> {(result.pdfInfo.fileSize / 1024 / 1024).toFixed(1)} MB |
-                            <span className="font-medium ml-2">Texto extraído:</span> {result.pdfInfo.textLength} caracteres
+                          <div className="text-sm text-gray-600 mb-3 flex flex-wrap gap-4">
+                            <span><strong>Páginas:</strong> {result.pdfInfo.processedPages}/{result.pdfInfo.numPages}</span>
+                            <span><strong>Tamaño:</strong> {(result.pdfInfo.fileSize / 1024 / 1024).toFixed(1)} MB</span>
+                            <span><strong>Texto extraído:</strong> {result.pdfInfo.textLength} caracteres</span>
+                            {result.pdfInfo.hasMetadata && <span className="text-green-600">✓ Metadata</span>}
                           </div>
                         )}
 
@@ -1005,8 +922,8 @@ const PDFDateValidationApp = () => {
                               {result.extractedData.architect && (
                                 <div><strong>Arquitecto:</strong> {result.extractedData.architect}</div>
                               )}
-                              {result.extractedData.titleDate && (
-                                <div><strong>Fecha:</strong> {result.extractedData.titleDate}</div>
+                              {result.extractedData.revisionDates && result.extractedData.revisionDates.length > 0 && (
+                                <div><strong>Revisiones:</strong> {result.extractedData.revisionDates.length} encontradas</div>
                               )}
                               {result.extractedData.documentType && (
                                 <div><strong>Tipo:</strong> {result.extractedData.documentType}</div>
@@ -1016,7 +933,7 @@ const PDFDateValidationApp = () => {
                         )}
 
                         {/* Errors */}
-                        {result.errors.length > 0 && (
+                        {result.errors && result.errors.length > 0 && (
                           <div className="mb-3">
                             <h5 className="text-sm font-medium text-red-900 mb-2">Errores:</h5>
                             <div className="space-y-2">
@@ -1033,7 +950,7 @@ const PDFDateValidationApp = () => {
                         )}
 
                         {/* Warnings */}
-                        {result.warnings.length > 0 && (
+                        {result.warnings && result.warnings.length > 0 && (
                           <div className="mb-3">
                             <h5 className="text-sm font-medium text-yellow-900 mb-2">Advertencias:</h5>
                             <div className="space-y-2">
@@ -1053,7 +970,7 @@ const PDFDateValidationApp = () => {
                       <div className="ml-4 flex space-x-2">
                         <button
                           onClick={() => setShowFileDetail(result)}
-                          className="text-indigo-600 hover:text-indigo-800"
+                          className="text-indigo-600 hover:text-indigo-800 p-2 rounded-md hover:bg-indigo-50 transition-colors"
                         >
                           <Eye className="h-5 w-5" />
                         </button>
@@ -1062,23 +979,6 @@ const PDFDateValidationApp = () => {
                   </div>
                 ))}
               </div>
-            </div>
-
-            {/* Reset Button */}
-            <div className="text-center">
-              <button
-                onClick={() => {
-                  setUploadedFiles([]);
-                  setValidationResults([]);
-                  setValidationProgress({ current: 0, total: 0 });
-                  if (fileInputRef.current) {
-                    fileInputRef.current.value = '';
-                  }
-                }}
-                className="bg-gray-600 text-white px-6 py-3 rounded-md hover:bg-gray-700 transition-colors"
-              >
-                Analizar Nuevos Archivos
-              </button>
             </div>
           </div>
         )}
@@ -1091,7 +991,7 @@ const PDFDateValidationApp = () => {
                 <h3 className="text-lg font-medium text-gray-900">Contenido Extraído del PDF</h3>
                 <button
                   onClick={() => setShowFileDetail(null)}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="text-gray-400 hover:text-gray-600 p-1 rounded-md hover:bg-gray-100 transition-colors"
                 >
                   <X className="h-6 w-6" />
                 </button>
@@ -1102,29 +1002,41 @@ const PDFDateValidationApp = () => {
                   <h4 className="font-medium text-gray-900 mb-2">Información Extraída Automáticamente</h4>
                   <div className="bg-gray-50 rounded-lg p-4 space-y-2 text-sm">
                     <div><strong>Archivo:</strong> {showFileDetail.file.name}</div>
-                    {showFileDetail.extractedData.projectName && (
+                    {showFileDetail.extractedData?.projectName && (
                       <div><strong>Proyecto:</strong> {showFileDetail.extractedData.projectName}</div>
                     )}
-                    {showFileDetail.extractedData.architect && (
+                    {showFileDetail.extractedData?.architect && (
                       <div><strong>Arquitecto:</strong> {showFileDetail.extractedData.architect}</div>
                     )}
-                    {showFileDetail.extractedData.owner && (
+                    {showFileDetail.extractedData?.owner && (
                       <div><strong>Propietario:</strong> {showFileDetail.extractedData.owner}</div>
                     )}
-                    {showFileDetail.extractedData.titleDate && (
+                    {showFileDetail.extractedData?.titleDate && (
                       <div><strong>Fecha Principal:</strong> {showFileDetail.extractedData.titleDate}</div>
                     )}
-                    {showFileDetail.extractedData.sheet && (
+                    {showFileDetail.extractedData?.revisionDates && showFileDetail.extractedData.revisionDates.length > 0 && (
+                      <div>
+                        <strong>Revisiones:</strong>
+                        <ul className="ml-4 mt-1 space-y-1">
+                          {showFileDetail.extractedData.revisionDates.map((rev, idx) => (
+                            <li key={idx} className="text-xs">
+                              {rev.number} - {rev.description} - {rev.date}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {showFileDetail.extractedData?.sheet && (
                       <div><strong>Lámina:</strong> {showFileDetail.extractedData.sheet}</div>
                     )}
-                    {showFileDetail.extractedData.scale && (
+                    {showFileDetail.extractedData?.scale && (
                       <div><strong>Escala:</strong> {showFileDetail.extractedData.scale}</div>
                     )}
-                    <div><strong>Tipo Detectado:</strong> {showFileDetail.extractedData.documentType}</div>
+                    <div><strong>Tipo Detectado:</strong> {showFileDetail.extractedData?.documentType}</div>
                   </div>
                 </div>
 
-                {showFileDetail.extractedData.rawText && (
+                {showFileDetail.extractedData?.rawText && (
                   <div>
                     <h4 className="font-medium text-gray-900 mb-2">Texto Completo Extraído (Primeros 1000 caracteres)</h4>
                     <div className="bg-gray-100 rounded-lg p-4 text-xs font-mono max-h-40 overflow-y-auto">
