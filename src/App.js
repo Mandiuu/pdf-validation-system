@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   Upload, FileText, CheckCircle, AlertTriangle, 
-  X, Eye, Calendar, Building, RefreshCw
+  X, Eye, Calendar, Building, RefreshCw, Plus, Settings, FolderPlus
 } from 'lucide-react';
 
 const PDFDateValidationApp = () => {
@@ -13,7 +13,61 @@ const PDFDateValidationApp = () => {
   const [pdfJsLoaded, setPdfJsLoaded] = useState(false);
   const [loadError, setLoadError] = useState(null);
   const [isLoadingPdfJs, setIsLoadingPdfJs] = useState(false);
+  
+  // New project management states
+  const [currentView, setCurrentView] = useState('projects'); // 'projects', 'validation'
+  const [projects, setProjects] = useState([]);
+  const [currentProject, setCurrentProject] = useState(null);
+  const [showCreateProject, setShowCreateProject] = useState(false);
+  const [showTemplateSelector, setShowTemplateSelector] = useState(false);
+  
   const fileInputRef = useRef(null);
+
+  // Predefined revision templates
+  const revisionTemplates = [
+    {
+      id: 'basic',
+      name: 'Básico - 3 Revisiones',
+      description: 'Anteproyecto, Proyecto Definitivo, Modificación',
+      revisions: [
+        { number: '1', description: 'ANTEPROYECTO', required: true },
+        { number: '2', description: 'PROYECTO DEFINITIVO', required: true },
+        { number: '3', description: 'MODIFICACIÓN DE PROYECTO', required: false }
+      ]
+    },
+    {
+      id: 'extended',
+      name: 'Extendido - 5 Revisiones',
+      description: 'Incluye revisiones intermedias y múltiples modificaciones',
+      revisions: [
+        { number: '1', description: 'ANTEPROYECTO', required: true },
+        { number: '2', description: 'REVISIÓN ANTEPROYECTO', required: false },
+        { number: '3', description: 'PROYECTO DEFINITIVO', required: true },
+        { number: '4', description: 'MODIFICACIÓN DE PROYECTO', required: false },
+        { number: '5', description: 'MODIFICACIÓN FINAL', required: false }
+      ]
+    },
+    {
+      id: 'detailed',
+      name: 'Detallado - 7 Revisiones',
+      description: 'Para proyectos grandes con múltiples etapas de revisión',
+      revisions: [
+        { number: '1', description: 'ANTEPROYECTO', required: true },
+        { number: '2', description: 'REVISIÓN CLIENTE', required: false },
+        { number: '3', description: 'PROYECTO BÁSICO', required: true },
+        { number: '4', description: 'PROYECTO DEFINITIVO', required: true },
+        { number: '5', description: 'REVISIÓN TÉCNICA', required: false },
+        { number: '6', description: 'MODIFICACIÓN DE PROYECTO', required: false },
+        { number: '7', description: 'VERSIÓN FINAL', required: false }
+      ]
+    },
+    {
+      id: 'custom',
+      name: 'Personalizado',
+      description: 'Define tus propias revisiones',
+      revisions: []
+    }
+  ];
 
   // Load PDF.js dynamically from CDN
   useEffect(() => {
@@ -73,6 +127,8 @@ const PDFDateValidationApp = () => {
       alert('Por favor selecciona solo archivos PDF');
       return;
     }
+
+
 
     setUploadedFiles(pdfFiles);
     setIsValidating(true);
@@ -682,9 +738,275 @@ const PDFDateValidationApp = () => {
     setValidationResults([]);
     setValidationProgress({ current: 0, total: 0 });
     setShowFileDetail(null);
+    setCurrentView('projects');
+    setCurrentProject(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
+  };
+
+  // Project management functions
+  const createProject = (projectData) => {
+    const newProject = {
+      id: Date.now().toString(),
+      ...projectData,
+      createdAt: new Date().toISOString(),
+      template: null,
+      validationResults: []
+    };
+    setProjects([...projects, newProject]);
+    setCurrentProject(newProject);
+    setShowCreateProject(false);
+    setShowTemplateSelector(true);
+  };
+
+  const selectTemplate = (templateId) => {
+    if (currentProject) {
+      const template = revisionTemplates.find(t => t.id === templateId);
+      const updatedProject = {
+        ...currentProject,
+        template: template
+      };
+      setCurrentProject(updatedProject);
+      setProjects(projects.map(p => p.id === currentProject.id ? updatedProject : p));
+      setShowTemplateSelector(false);
+      setCurrentView('validation');
+    }
+  };
+
+  const ProjectCreationForm = () => {
+    const [formData, setFormData] = useState({
+      name: '',
+      number: '',
+      author: '',
+      year: new Date().getFullYear()
+    });
+
+    const handleSubmit = (e) => {
+      e.preventDefault();
+      if (!formData.name || !formData.number || !formData.author) {
+        alert('Por favor completa todos los campos obligatorios');
+        return;
+      }
+      createProject(formData);
+    };
+
+    return (
+      <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+        <div className="relative top-20 mx-auto p-6 border w-full max-w-md shadow-lg rounded-md bg-white">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-medium text-gray-900">Crear Nuevo Proyecto</h3>
+            <button
+              onClick={() => setShowCreateProject(false)}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              <X className="h-6 w-6" />
+            </button>
+          </div>
+          
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Nombre del Proyecto *
+              </label>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData({...formData, name: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                placeholder="ej: Casa Hermanos"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Número de Proyecto *
+              </label>
+              <input
+                type="text"
+                value={formData.number}
+                onChange={(e) => setFormData({...formData, number: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                placeholder="ej: 2024-001"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Autor/Arquitecto *
+              </label>
+              <input
+                type="text"
+                value={formData.author}
+                onChange={(e) => setFormData({...formData, author: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                placeholder="ej: Javier Andrés Moya Ortiz"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Año
+              </label>
+              <input
+                type="number"
+                value={formData.year}
+                onChange={(e) => setFormData({...formData, year: parseInt(e.target.value)})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                min="2020"
+                max="2030"
+              />
+            </div>
+            
+            <div className="flex space-x-3 pt-4">
+              <button
+                type="button"
+                onClick={() => setShowCreateProject(false)}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+              >
+                Crear Proyecto
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  };
+
+  const TemplateSelector = () => {
+    return (
+      <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+        <div className="relative top-10 mx-auto p-6 border w-full max-w-4xl shadow-lg rounded-md bg-white">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-lg font-medium text-gray-900">Seleccionar Template de Revisión</h3>
+            <button
+              onClick={() => setShowTemplateSelector(false)}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              <X className="h-6 w-6" />
+            </button>
+          </div>
+          
+          <div className="grid md:grid-cols-2 gap-4">
+            {revisionTemplates.map((template) => (
+              <div
+                key={template.id}
+                className="border border-gray-200 rounded-lg p-4 hover:border-indigo-300 cursor-pointer transition-colors"
+                onClick={() => selectTemplate(template.id)}
+              >
+                <h4 className="font-medium text-gray-900 mb-2">{template.name}</h4>
+                <p className="text-sm text-gray-600 mb-3">{template.description}</p>
+                
+                {template.revisions.length > 0 && (
+                  <div className="space-y-1">
+                    <p className="text-xs font-medium text-gray-700">Revisiones incluidas:</p>
+                    {template.revisions.map((revision, index) => (
+                      <div key={index} className="text-xs text-gray-600 flex items-center">
+                        <span className="w-6">{revision.number}.</span>
+                        <span className="flex-1">{revision.description}</span>
+                        {revision.required && (
+                          <span className="text-red-500 text-xs">*</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
+                {template.id === 'custom' && (
+                  <p className="text-xs text-indigo-600 mt-2">
+                    Podrás definir tus propias revisiones después de seleccionar esta opción
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const ProjectsList = () => {
+    return (
+      <div className="bg-white rounded-lg shadow">
+        <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+          <h2 className="text-xl font-bold text-gray-900">Proyectos</h2>
+          <button
+            onClick={() => setShowCreateProject(true)}
+            className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Nuevo Proyecto
+          </button>
+        </div>
+        
+        {projects.length === 0 ? (
+          <div className="p-8 text-center">
+            <FolderPlus className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No hay proyectos</h3>
+            <p className="text-gray-600 mb-4">Crea tu primer proyecto para comenzar a validar PDFs</p>
+            <button
+              onClick={() => setShowCreateProject(true)}
+              className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
+            >
+              Crear Proyecto
+            </button>
+          </div>
+        ) : (
+          <div className="divide-y divide-gray-200">
+            {projects.map((project) => (
+              <div key={project.id} className="p-6 hover:bg-gray-50">
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <h3 className="text-lg font-medium text-gray-900">{project.name}</h3>
+                    <div className="text-sm text-gray-600 space-y-1 mt-1">
+                      <div><strong>Número:</strong> {project.number}</div>
+                      <div><strong>Autor:</strong> {project.author}</div>
+                      <div><strong>Año:</strong> {project.year}</div>
+                      {project.template && (
+                        <div><strong>Template:</strong> {project.template.name}</div>
+                      )}
+                      <div><strong>Creado:</strong> {new Date(project.createdAt).toLocaleDateString()}</div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex space-x-2">
+                    {!project.template ? (
+                      <button
+                        onClick={() => {
+                          setCurrentProject(project);
+                          setShowTemplateSelector(true);
+                        }}
+                        className="flex items-center px-3 py-2 text-sm bg-yellow-100 text-yellow-800 rounded-md hover:bg-yellow-200 transition-colors"
+                      >
+                        <Settings className="h-4 w-4 mr-1" />
+                        Configurar Template
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          setCurrentProject(project);
+                          setCurrentView('validation');
+                        }}
+                        className="flex items-center px-3 py-2 text-sm bg-indigo-100 text-indigo-800 rounded-md hover:bg-indigo-200 transition-colors"
+                      >
+                        <Upload className="h-4 w-4 mr-1" />
+                        Validar PDFs
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -695,8 +1017,8 @@ const PDFDateValidationApp = () => {
             <div className="flex items-center">
               <Building className="h-8 w-8 text-indigo-600 mr-3" />
               <div>
-                <h1 className="text-xl font-semibold text-gray-900">Validación de PDFs Arquitectónicos</h1>
-                <p className="text-sm text-gray-500">Extrae y valida contenido de archivos PDF usando PDF.js</p>
+                <h1 className="text-xl font-semibold text-gray-900">Validación Real de PDFs Arquitectónicos</h1>
+                <p className="text-sm text-gray-500">Extrae y valida contenido real de archivos PDF usando PDF.js</p>
               </div>
             </div>
             {validationResults.length > 0 && (
