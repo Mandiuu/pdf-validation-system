@@ -996,7 +996,7 @@ const PDFDateValidationApp = () => {
                   className="flex items-center px-8 py-4 bg-slate-700 text-white rounded-xl hover:bg-slate-800 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 font-semibold text-lg"
                 >
                   <Plus className="h-5 w-5 mr-3" />
-                  Crear Nuevo Proyecto
+                  Crear nuevo proyecto
                 </button>
               </div>
             </div>
