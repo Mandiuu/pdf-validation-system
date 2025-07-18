@@ -128,8 +128,6 @@ const PDFDateValidationApp = () => {
       return;
     }
 
-
-
     setUploadedFiles(pdfFiles);
     setIsValidating(true);
     setValidationProgress({ current: 0, total: pdfFiles.length });
@@ -156,7 +154,7 @@ const PDFDateValidationApp = () => {
           extractedData: null,
           errors: [{
             type: 'PROCESSING_ERROR',
-            message: '❌ Error al procesar el PDF',
+            message: 'Error al procesar el PDF',
             details: `No se pudo leer el archivo: ${error.message}`
           }],
           warnings: [],
@@ -566,25 +564,25 @@ const PDFDateValidationApp = () => {
           if (cleanExtractedName.toLowerCase().includes('ortizs')) {
             errors.push({
               type: 'ARCHITECT_NAME_TYPO',
-              message: '❌ ERROR TIPOGRÁFICO EN NOMBRE DE ARQUITECTO: "s" extra detectada',
+              message: 'ERROR TIPOGRÁFICO EN NOMBRE DE ARQUITECTO: "s" extra detectada',
               details: `Encontrado: "${extractedData.architect}" | Error: "Ortizs" debe ser "Ortiz" | Estándar: "${standardArchitectName}"`
             });
           } else if (cleanExtractedName.toLowerCase().includes('andres') && !cleanExtractedName.toLowerCase().includes('andrés')) {
             errors.push({
               type: 'ARCHITECT_NAME_ACCENT',
-              message: '❌ ERROR DE ACENTUACIÓN EN NOMBRE DE ARQUITECTO: Falta acento en "Andrés"',
+              message: 'ERROR DE ACENTUACIÓN EN NOMBRE DE ARQUITECTO: Falta acento en "Andrés"',
               details: `Encontrado: "${extractedData.architect}" | Debe ser: "${standardArchitectName}"`
             });
           } else if (!cleanExtractedName.toLowerCase().includes('moya')) {
             errors.push({
               type: 'ARCHITECT_NAME_INCOMPLETE',
-              message: '❌ ERROR EN NOMBRE DE ARQUITECTO: Nombre incompleto, falta "Moya"',
+              message: 'ERROR EN NOMBRE DE ARQUITECTO: Nombre incompleto, falta "Moya"',
               details: `Encontrado: "${extractedData.architect}" | Completo: "${standardArchitectName}"`
             });
           } else {
             errors.push({
               type: 'ARCHITECT_NAME_ERROR',
-              message: '❌ ERROR EN NOMBRE DE ARQUITECTO: No coincide con el nombre estándar',
+              message: 'ERROR EN NOMBRE DE ARQUITECTO: No coincide con el nombre estándar',
               details: `Encontrado: "${extractedData.architect}" | Estándar: "${standardArchitectName}"`
             });
           }
@@ -592,7 +590,7 @@ const PDFDateValidationApp = () => {
       } else {
         warnings.push({
           type: 'ARCHITECT_NAME_MISSING',
-          message: '⚠️ NOMBRE DE ARQUITECTO: No se pudo extraer automáticamente',
+          message: 'NOMBRE DE ARQUITECTO: No se pudo extraer automáticamente',
           details: 'Verifique manualmente que el nombre del arquitecto esté presente y sea legible'
         });
       }
@@ -601,7 +599,7 @@ const PDFDateValidationApp = () => {
       if (!extractedData.projectName || extractedData.projectName.length < 3) {
         warnings.push({
           type: 'PROJECT_NAME_WARNING',
-          message: '⚠️ NOMBRE DE PROYECTO: No se pudo extraer o es muy corto',
+          message: 'NOMBRE DE PROYECTO: No se pudo extraer o es muy corto',
           details: 'Verifique que el nombre del proyecto esté claramente indicado'
         });
       }
@@ -620,7 +618,7 @@ const PDFDateValidationApp = () => {
         if (actualDuplicates.length > 0) {
           errors.push({
             type: 'DUPLICATE_DATES_ERROR',
-            message: '❌ ERROR CRÍTICO DE FECHAS: Revisiones con fechas idénticas detectadas',
+            message: 'ERROR CRÍTICO DE FECHAS: Revisiones con fechas idénticas detectadas',
             details: `Fechas duplicadas encontradas: ${actualDuplicates.join(', ')}. Cada revisión debe tener una fecha única.`
           });
         }
@@ -640,13 +638,13 @@ const PDFDateValidationApp = () => {
           if (definitivoDate.getTime() === modificacionDate.getTime()) {
             errors.push({
               type: 'SAME_DATE_LOGIC_ERROR',
-              message: '❌ ERROR LÓGICO DE FECHAS: Proyecto definitivo y modificación tienen la misma fecha',
+              message: 'ERROR LÓGICO DE FECHAS: Proyecto definitivo y modificación tienen la misma fecha',
               details: `Ambos marcados con fecha ${definitivo.date}. Una modificación debe ser posterior al proyecto definitivo.`
             });
           } else if (modificacionDate < definitivoDate) {
             errors.push({
               type: 'DATE_SEQUENCE_ERROR',
-              message: '❌ ERROR LÓGICO DE FECHAS: Modificación anterior al proyecto definitivo',
+              message: 'ERROR LÓGICO DE FECHAS: Modificación anterior al proyecto definitivo',
               details: `Modificación (${modificacion.date}) es anterior al proyecto definitivo (${definitivo.date}).`
             });
           }
@@ -654,7 +652,7 @@ const PDFDateValidationApp = () => {
       } else if (!extractedData.titleDate) {
         warnings.push({
           type: 'DATE_WARNING',
-          message: '⚠️ FECHAS: No se pudieron extraer fechas automáticamente',
+          message: 'FECHAS: No se pudieron extraer fechas automáticamente',
           details: 'Verifique manualmente las fechas en el documento'
         });
       }
@@ -663,7 +661,7 @@ const PDFDateValidationApp = () => {
       if (pdfContent.layoutAnalysis.hasAlignmentIssues) {
         warnings.push({
           type: 'LAYOUT_WARNING',
-          message: '⚠️ FORMATO: Posibles problemas de alineación detectados',
+          message: 'FORMATO: Posibles problemas de alineación detectados',
           details: pdfContent.layoutAnalysis.formattingProblems.join('; ')
         });
       }
@@ -672,7 +670,7 @@ const PDFDateValidationApp = () => {
       if (pdfContent.fullText.length < 100) {
         warnings.push({
           type: 'LOW_TEXT_WARNING',
-          message: '⚠️ CONTENIDO LIMITADO: Se extrajo poco texto del PDF',
+          message: 'CONTENIDO LIMITADO: Se extrajo poco texto del PDF',
           details: 'El PDF podría contener principalmente imágenes o texto no seleccionable'
         });
       }
@@ -792,83 +790,90 @@ const PDFDateValidationApp = () => {
     };
 
     return (
-      <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-        <div className="relative top-20 mx-auto p-6 border w-full max-w-md shadow-lg rounded-md bg-white">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-medium text-gray-900">Crear Nuevo Proyecto</h3>
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
+        <div className="relative p-8 border w-full max-w-lg shadow-2xl rounded-2xl bg-white">
+          <div className="flex justify-between items-center mb-8">
+            <div>
+              <h3 className="text-2xl font-bold text-slate-800">
+                Nuevo Proyecto
+              </h3>
+              <p className="text-slate-600 mt-1">Información básica del proyecto arquitectónico</p>
+            </div>
             <button
               onClick={() => setShowCreateProject(false)}
-              className="text-gray-400 hover:text-gray-600"
+              className="text-slate-400 hover:text-slate-600 p-2 hover:bg-slate-100 rounded-xl transition-all duration-200"
             >
               <X className="h-6 w-6" />
             </button>
           </div>
           
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Nombre del Proyecto *
-              </label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) => setFormData({...formData, name: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="ej: Casa Hermanos"
-              />
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  Nombre del Proyecto *
+                </label>
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData({...formData, name: e.target.value})}
+                  className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-transparent transition-all duration-200"
+                  placeholder="ej: Casa Hermanos"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  Número de Proyecto *
+                </label>
+                <input
+                  type="text"
+                  value={formData.number}
+                  onChange={(e) => setFormData({...formData, number: e.target.value})}
+                  className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-transparent transition-all duration-200"
+                  placeholder="ej: 2024-001"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  Autor/Arquitecto *
+                </label>
+                <input
+                  type="text"
+                  value={formData.author}
+                  onChange={(e) => setFormData({...formData, author: e.target.value})}
+                  className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-transparent transition-all duration-200"
+                  placeholder="ej: Javier Andrés Moya Ortiz"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  Año
+                </label>
+                <input
+                  type="number"
+                  value={formData.year}
+                  onChange={(e) => setFormData({...formData, year: parseInt(e.target.value)})}
+                  className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-transparent transition-all duration-200"
+                  min="2020"
+                  max="2030"
+                />
+              </div>
             </div>
             
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Número de Proyecto *
-              </label>
-              <input
-                type="text"
-                value={formData.number}
-                onChange={(e) => setFormData({...formData, number: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="ej: 2024-001"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Autor/Arquitecto *
-              </label>
-              <input
-                type="text"
-                value={formData.author}
-                onChange={(e) => setFormData({...formData, author: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="ej: Javier Andrés Moya Ortiz"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Año
-              </label>
-              <input
-                type="number"
-                value={formData.year}
-                onChange={(e) => setFormData({...formData, year: parseInt(e.target.value)})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                min="2020"
-                max="2030"
-              />
-            </div>
-            
-            <div className="flex space-x-3 pt-4">
+            <div className="flex space-x-4 pt-6">
               <button
                 type="button"
                 onClick={() => setShowCreateProject(false)}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                className="flex-1 px-6 py-3 border-2 border-slate-300 rounded-xl text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-all duration-200 font-medium"
               >
                 Cancelar
               </button>
               <button
                 type="submit"
-                className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+                className="flex-1 px-6 py-3 bg-slate-700 text-white rounded-xl hover:bg-slate-800 transition-all duration-300 shadow-lg hover:shadow-xl font-semibold"
               >
                 Crear Proyecto
               </button>
@@ -881,50 +886,81 @@ const PDFDateValidationApp = () => {
 
   const TemplateSelector = () => {
     return (
-      <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-        <div className="relative top-10 mx-auto p-6 border w-full max-w-4xl shadow-lg rounded-md bg-white">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-lg font-medium text-gray-900">Seleccionar Template de Revisión</h3>
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
+        <div className="relative p-8 border w-full max-w-5xl shadow-2xl rounded-2xl bg-white/95 backdrop-blur-sm max-h-[90vh] overflow-y-auto">
+          <div className="flex justify-between items-center mb-8">
+            <div>
+              <h3 className="text-2xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+                Seleccionar Template de Revisión
+              </h3>
+              <p className="text-slate-600 mt-1">
+                Configura las revisiones esperadas para tu proyecto: <strong>{currentProject?.name}</strong>
+              </p>
+            </div>
             <button
               onClick={() => setShowTemplateSelector(false)}
-              className="text-gray-400 hover:text-gray-600"
+              className="text-slate-400 hover:text-slate-600 p-2 hover:bg-slate-100 rounded-xl transition-all duration-200"
             >
               <X className="h-6 w-6" />
             </button>
           </div>
           
-          <div className="grid md:grid-cols-2 gap-4">
-            {revisionTemplates.map((template) => (
+          <div className="grid md:grid-cols-2 gap-6">
+            {revisionTemplates.map((template, index) => (
               <div
                 key={template.id}
-                className="border border-gray-200 rounded-lg p-4 hover:border-indigo-300 cursor-pointer transition-colors"
+                className="group relative overflow-hidden border-2 border-slate-200 rounded-2xl p-6 hover:border-slate-400 cursor-pointer transition-all duration-300 bg-gradient-to-br from-white to-slate-50 hover:shadow-xl"
                 onClick={() => selectTemplate(template.id)}
               >
-                <h4 className="font-medium text-gray-900 mb-2">{template.name}</h4>
-                <p className="text-sm text-gray-600 mb-3">{template.description}</p>
+                <div className="absolute top-4 right-4 h-8 w-8 bg-gradient-to-br from-slate-600 to-slate-700 rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                  <span className="text-white font-bold text-sm">{index + 1}</span>
+                </div>
+                
+                <div className="mb-4">
+                  <h4 className="text-lg font-bold text-slate-800 mb-2 group-hover:text-slate-700 transition-colors">
+                    {template.name}
+                  </h4>
+                  <p className="text-sm text-slate-600 leading-relaxed">{template.description}</p>
+                </div>
                 
                 {template.revisions.length > 0 && (
-                  <div className="space-y-1">
-                    <p className="text-xs font-medium text-gray-700">Revisiones incluidas:</p>
-                    {template.revisions.map((revision, index) => (
-                      <div key={index} className="text-xs text-gray-600 flex items-center">
-                        <span className="w-6">{revision.number}.</span>
-                        <span className="flex-1">{revision.description}</span>
-                        {revision.required && (
-                          <span className="text-red-500 text-xs">*</span>
-                        )}
-                      </div>
-                    ))}
+                  <div className="space-y-3">
+                    <p className="text-xs font-semibold text-slate-700 uppercase tracking-wide">
+                      Revisiones incluidas:
+                    </p>
+                    <div className="space-y-2">
+                      {template.revisions.map((revision, revIndex) => (
+                        <div key={revIndex} className="flex items-center text-xs bg-white/50 rounded-lg p-2 group-hover:bg-slate-50/50 transition-colors">
+                          <div className="h-6 w-6 bg-gradient-to-br from-slate-400 to-slate-500 rounded-full flex items-center justify-center mr-3 text-white font-bold text-xs">
+                            {revision.number}
+                          </div>
+                          <span className="flex-1 text-slate-700 font-medium">{revision.description}</span>
+                          {revision.required && (
+                            <div className="h-2 w-2 bg-red-500 rounded-full ml-2" title="Obligatorio"></div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
                 
                 {template.id === 'custom' && (
-                  <p className="text-xs text-indigo-600 mt-2">
-                    Podrás definir tus propias revisiones después de seleccionar esta opción
-                  </p>
+                  <div className="mt-4 p-3 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-lg">
+                    <p className="text-xs text-amber-800 font-medium">
+                      Podrás definir tus propias revisiones después de seleccionar esta opción
+                    </p>
+                  </div>
                 )}
+                
+                <div className="absolute inset-0 border-2 border-transparent group-hover:border-slate-400 rounded-2xl transition-all duration-300 pointer-events-none"></div>
               </div>
             ))}
+          </div>
+          
+          <div className="mt-8 p-4 bg-gradient-to-r from-slate-50 to-gray-50 border border-slate-200 rounded-xl">
+            <p className="text-sm text-slate-700">
+              <strong>Tip:</strong> El template seleccionado determinará qué revisiones debe contener tu PDF y cómo se validarán las fechas y secuencias.
+            </p>
           </div>
         </div>
       </div>
@@ -933,372 +969,538 @@ const PDFDateValidationApp = () => {
 
   const ProjectsList = () => {
     return (
-      <div className="bg-white rounded-lg shadow">
-        <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-          <h2 className="text-xl font-bold text-gray-900">Proyectos</h2>
-          <button
-            onClick={() => setShowCreateProject(true)}
-            className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Nuevo Proyecto
-          </button>
-        </div>
-        
-        {projects.length === 0 ? (
-          <div className="p-8 text-center">
-            <FolderPlus className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No hay proyectos</h3>
-            <p className="text-gray-600 mb-4">Crea tu primer proyecto para comenzar a validar PDFs</p>
-            <button
-              onClick={() => setShowCreateProject(true)}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
-            >
-              Crear Proyecto
-            </button>
+      <div className="space-y-8">
+        {/* Project Creation Header */}
+        <div className="bg-white rounded-2xl shadow-lg border border-slate-200">
+          <div className="px-8 py-8">
+            <div className="flex items-center justify-between">
+              <div className="max-w-2xl">
+                <div className="flex items-center mb-4">
+                  <div className="h-12 w-12 bg-slate-100 rounded-xl flex items-center justify-center mr-4 border border-slate-200">
+                    <Plus className="h-6 w-6 text-slate-600" />
+                  </div>
+                  <h2 className="text-2xl font-bold text-slate-800">
+                    Crear proyecto con información básica
+                  </h2>
+                </div>
+                <p className="text-lg text-slate-600 leading-relaxed">
+                  Inicia creando un proyecto con información esencial: nombre, número, autor y año. 
+                  <span className="block text-base text-slate-500 mt-2">
+                    Cada proyecto tendrá su propio template de revisión personalizado.
+                  </span>
+                </p>
+              </div>
+              <div className="hidden md:block">
+                <button
+                  onClick={() => setShowCreateProject(true)}
+                  className="flex items-center px-8 py-4 bg-slate-700 text-white rounded-xl hover:bg-slate-800 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 font-semibold text-lg"
+                >
+                  <Plus className="h-5 w-5 mr-3" />
+                  Crear Nuevo Proyecto
+                </button>
+              </div>
+            </div>
+            <div className="md:hidden mt-6">
+              <button
+                onClick={() => setShowCreateProject(true)}
+                className="w-full flex items-center justify-center px-6 py-3 bg-slate-700 text-white rounded-xl hover:bg-slate-800 transition-all duration-300 shadow-lg font-semibold"
+              >
+                <Plus className="h-5 w-5 mr-2" />
+                Crear Nuevo Proyecto
+              </button>
+            </div>
           </div>
-        ) : (
-          <div className="divide-y divide-gray-200">
-            {projects.map((project) => (
-              <div key={project.id} className="p-6 hover:bg-gray-50">
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <h3 className="text-lg font-medium text-gray-900">{project.name}</h3>
-                    <div className="text-sm text-gray-600 space-y-1 mt-1">
-                      <div><strong>Número:</strong> {project.number}</div>
-                      <div><strong>Autor:</strong> {project.author}</div>
-                      <div><strong>Año:</strong> {project.year}</div>
+        </div>
+
+        {/* Projects List */}
+        <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-xl border border-white/50">
+          <div className="px-8 py-6 border-b border-slate-200/50">
+            <div className="flex justify-between items-center">
+              <div>
+                <h3 className="text-xl font-bold text-slate-800">Proyectos existentes</h3>
+                <p className="text-sm text-slate-600 mt-1">Gestiona y organiza tus proyectos arquitectónicos</p>
+              </div>
+              <button
+                onClick={() => setShowCreateProject(true)}
+                className="flex items-center px-5 py-2.5 bg-gradient-to-r from-slate-700 to-slate-800 text-white rounded-xl hover:from-slate-800 hover:to-slate-900 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 font-medium"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Nuevo
+              </button>
+            </div>
+          </div>
+          
+          {projects.length === 0 ? (
+            <div className="p-12 text-center">
+              <div className="h-20 w-20 bg-gradient-to-br from-slate-200 to-slate-300 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                <FolderPlus className="h-10 w-10 text-slate-500" />
+              </div>
+              <h3 className="text-xl font-bold text-slate-800 mb-3">No hay proyectos creados</h3>
+              <p className="text-slate-600 mb-8 max-w-md mx-auto leading-relaxed">
+                Crea tu primer proyecto para comenzar a validar PDFs arquitectónicos con nuestro sistema inteligente
+              </p>
+              <button
+                onClick={() => setShowCreateProject(true)}
+                className="px-8 py-3 bg-gradient-to-r from-slate-700 to-slate-800 text-white rounded-xl hover:from-slate-800 hover:to-slate-900 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 font-semibold"
+              >
+                Crear Primer Proyecto
+              </button>
+            </div>
+          ) : (
+            <div className="divide-y divide-slate-200/50">
+              {projects.map((project, index) => (
+                <div key={project.id} className="p-8 hover:bg-gradient-to-r hover:from-slate-50/50 hover:to-slate-50/30 transition-all duration-300 group">
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <div className="flex items-center mb-3">
+                        <div className="h-10 w-10 bg-gradient-to-br from-slate-600 to-slate-700 rounded-xl flex items-center justify-center mr-4 shadow-lg">
+                          <span className="text-white font-bold text-sm">{index + 1}</span>
+                        </div>
+                        <h3 className="text-xl font-bold text-slate-800 group-hover:text-slate-700 transition-colors">
+                          {project.name}
+                        </h3>
+                      </div>
+                      <div className="grid md:grid-cols-2 gap-3 text-sm">
+                        <div className="space-y-2">
+                          <div className="flex items-center">
+                            <span className="font-semibold text-slate-700 w-20">Número:</span>
+                            <span className="text-slate-600">{project.number}</span>
+                          </div>
+                          <div className="flex items-center">
+                            <span className="font-semibold text-slate-700 w-20">Autor:</span>
+                            <span className="text-slate-600">{project.author}</span>
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <div className="flex items-center">
+                            <span className="font-semibold text-slate-700 w-20">Año:</span>
+                            <span className="text-slate-600">{project.year}</span>
+                          </div>
+                          <div className="flex items-center">
+                            <span className="font-semibold text-slate-700 w-20">Creado:</span>
+                            <span className="text-slate-600">{new Date(project.createdAt).toLocaleDateString()}</span>
+                          </div>
+                        </div>
+                      </div>
                       {project.template && (
-                        <div><strong>Template:</strong> {project.template.name}</div>
+                        <div className="mt-3 px-3 py-2 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-lg">
+                          <span className="text-sm font-medium text-emerald-700">
+                            Template: {project.template.name}
+                          </span>
+                        </div>
                       )}
-                      <div><strong>Creado:</strong> {new Date(project.createdAt).toLocaleDateString()}</div>
+                    </div>
+                    
+                    <div className="flex space-x-3 ml-6">
+                      {!project.template ? (
+                        <button
+                          onClick={() => {
+                            setCurrentProject(project);
+                            setShowTemplateSelector(true);
+                          }}
+                          className="flex items-center px-4 py-2.5 text-sm bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl hover:from-amber-600 hover:to-orange-600 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 font-medium"
+                        >
+                          <Settings className="h-4 w-4 mr-2" />
+                          Configurar Template
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            setCurrentProject(project);
+                            setCurrentView('validation');
+                          }}
+                          className="flex items-center px-4 py-2.5 text-sm bg-gradient-to-r from-emerald-600 to-emerald-700 text-white rounded-xl hover:from-emerald-700 hover:to-emerald-800 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 font-medium"
+                        >
+                          <Upload className="h-4 w-4 mr-2" />
+                          Validar PDFs
+                        </button>
+                      )}
                     </div>
                   </div>
-                  
-                  <div className="flex space-x-2">
-                    {!project.template ? (
-                      <button
-                        onClick={() => {
-                          setCurrentProject(project);
-                          setShowTemplateSelector(true);
-                        }}
-                        className="flex items-center px-3 py-2 text-sm bg-yellow-100 text-yellow-800 rounded-md hover:bg-yellow-200 transition-colors"
-                      >
-                        <Settings className="h-4 w-4 mr-1" />
-                        Configurar Template
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => {
-                          setCurrentProject(project);
-                          setCurrentView('validation');
-                        }}
-                        className="flex items-center px-3 py-2 text-sm bg-indigo-100 text-indigo-800 rounded-md hover:bg-indigo-200 transition-colors"
-                      >
-                        <Upload className="h-4 w-4 mr-1" />
-                        Validar PDFs
-                      </button>
-                    )}
-                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     );
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm border-b">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100" style={{fontFamily: 'Arial, sans-serif', fontSize: '.875em', lineHeight: '20px'}}>
+      <header className="bg-white/80 backdrop-blur-sm shadow-lg border-b border-slate-200/60">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between py-4">
+          <div className="flex items-center justify-between py-5">
             <div className="flex items-center">
-              <Building className="h-8 w-8 text-indigo-600 mr-3" />
+              <div className="relative">
+                <Building className="h-10 w-10 text-slate-700 mr-4" />
+                <div className="absolute -top-1 -right-1 h-4 w-4 bg-gradient-to-r from-slate-600 to-slate-700 rounded-full flex items-center justify-center">
+                  <div className="h-1.5 w-1.5 bg-white rounded-full"></div>
+                </div>
+              </div>
               <div>
-                <h1 className="text-xl font-semibold text-gray-900">Validación Real de PDFs Arquitectónicos</h1>
-                <p className="text-sm text-gray-500">Extrae y valida contenido real de archivos PDF usando PDF.js</p>
+                <h1 className="font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent" style={{fontSize: '1.5rem'}}>
+                  {currentProject ? `${currentProject.name}` : 'ArchiValidator Pro'}
+                </h1>
+                <p className="text-slate-600 font-medium" style={{fontSize: '.75rem'}}>
+                  {currentProject 
+                    ? `${currentProject.number} • ${currentProject.author} • ${currentProject.year}`
+                    : 'Sistema profesional de validación de PDF'
+                  }
+                </p>
               </div>
             </div>
-            {validationResults.length > 0 && (
-              <button
-                onClick={resetApp}
-                className="flex items-center px-4 py-2 text-sm bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
-              >
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Nuevo Análisis
-              </button>
-            )}
+            <div className="flex space-x-3">
+              {currentView === 'validation' && (
+                <button
+                  onClick={() => {
+                    setCurrentView('projects');
+                    setCurrentProject(null);
+                    setUploadedFiles([]);
+                    setValidationResults([]);
+                  }}
+                  className="flex items-center px-5 py-2.5 bg-gradient-to-r from-slate-600 to-slate-700 text-white rounded-xl hover:from-slate-700 hover:to-slate-800 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 font-medium"
+                  style={{fontSize: '.75rem'}}
+                >
+                  <FolderPlus className="h-4 w-4 mr-2" />
+                  Proyectos
+                </button>
+              )}
+              {validationResults.length > 0 && currentView === 'validation' && (
+                <button
+                  onClick={resetApp}
+                  className="flex items-center px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white rounded-xl hover:from-emerald-700 hover:to-emerald-800 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 font-medium"
+                  style={{fontSize: '.75rem'}}
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Nuevo Análisis
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </header>
 
       <main className="max-w-6xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-        {/* Upload Section */}
-        {uploadedFiles.length === 0 && (
-          <div className="bg-white rounded-lg shadow p-8">
-            <div className="text-center">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">Cargar PDFs para Análisis Real</h2>
-              
-              {/* PDF.js Loading Status */}
-              {isLoadingPdfJs && (
-                <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <div className="flex items-center justify-center">
-                    <div className="animate-spin h-5 w-5 border-2 border-blue-600 border-t-transparent rounded-full mr-3"></div>
-                    <span className="text-blue-800">Cargando PDF.js...</span>
-                  </div>
-                </div>
-              )}
+        {/* Project Management View */}
+        {currentView === 'projects' && <ProjectsList />}
 
-              {loadError && (
-                <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
-                  <p className="text-red-800 mb-3">Error cargando PDF.js: {loadError}</p>
-                  <button
-                    onClick={retryPdfJsLoad}
-                    className="inline-flex items-center px-3 py-2 text-sm bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
-                  >
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                    Reintentar
-                  </button>
+        {/* PDF Validation View */}
+        {currentView === 'validation' && currentProject && (
+          <>
+            {/* Current Project Info */}
+            <div className="bg-white rounded-lg shadow p-4 mb-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900">{currentProject.name}</h3>
+                  <p className="text-sm text-gray-600">
+                    Template: {currentProject.template?.name} | 
+                    {currentProject.template?.revisions.length} revisiones configuradas
+                  </p>
                 </div>
-              )}
-
-              {pdfJsLoaded && (
-                <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
-                  <div className="flex items-center justify-center">
-                    <CheckCircle className="h-5 w-5 text-green-600 mr-2" />
-                    <span className="text-green-800">PDF.js cargado correctamente</span>
-                  </div>
-                </div>
-              )}
-              
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-12">
-                <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                <div className="space-y-2">
-                  <p className="text-lg text-gray-600">Selecciona archivos PDF arquitectónicos</p>
-                  <p className="text-sm text-gray-500">El sistema extraerá contenido real usando PDF.js (máximo 50MB por archivo)</p>
-                </div>
-                
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  multiple
-                  accept=".pdf"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                />
-                
                 <button
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={!pdfJsLoaded || loadError || isLoadingPdfJs}
-                  className={`mt-6 px-6 py-3 rounded-md transition-colors ${
-                    pdfJsLoaded && !loadError && !isLoadingPdfJs
-                      ? 'bg-indigo-600 text-white hover:bg-indigo-700'
-                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  }`}
+                  onClick={() => {
+                    setCurrentProject(currentProject);
+                    setShowTemplateSelector(true);
+                  }}
+                  className="flex items-center px-3 py-2 text-sm bg-slate-100 text-slate-800 rounded-md hover:bg-slate-200 transition-colors"
                 >
-                  {pdfJsLoaded ? 'Seleccionar PDFs' : 'Cargando PDF.js...'}
+                  <Settings className="h-4 w-4 mr-1" />
+                  Cambiar Template
                 </button>
               </div>
-
-              <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
-                <h3 className="text-lg font-medium text-blue-900 mb-3">Errores que Detecta el Sistema</h3>
-                <div className="text-left space-y-3">
-                  <div className="flex items-start">
-                    <AlertTriangle className="h-5 w-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0" />
-                    <div>
-                      <p className="text-sm font-medium text-blue-900">Errores Tipográficos en Nombres</p>
-                      <p className="text-xs text-blue-700">
-                        Detecta errores como "Ortizs" (extra "s"), falta de acentos ("Andres" → "Andrés"), nombres incompletos
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-start">
-                    <FileText className="h-5 w-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0" />
-                    <div>
-                      <p className="text-sm font-medium text-blue-900">Problemas de Alineación</p>
-                      <p className="text-xs text-blue-700">
-                        Detecta texto mal alineado en viñetas, espaciado inconsistente y problemas de formato en títulos
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-start">
-                    <Calendar className="h-5 w-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0" />
-                    <div>
-                      <p className="text-sm font-medium text-blue-900">Errores Lógicos de Fechas</p>
-                      <p className="text-xs text-blue-700">
-                        Detecta cuando múltiples revisiones tienen la misma fecha (ej: PROYECTO DEFINITIVO y MODIFICACIÓN ambos el 15/01/2024). También valida secuencia lógica: anteproyecto → proyecto definitivo → modificaciones.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Processing State */}
-        {isValidating && (
-          <div className="bg-white rounded-lg shadow p-8 text-center">
-            <div className="animate-spin mx-auto h-12 w-12 border-4 border-blue-200 border-t-blue-600 rounded-full mb-4"></div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Extrayendo contenido real de PDFs...</h3>
-            <p className="text-gray-600 mb-4">
-              Procesando archivo {validationProgress.current} de {validationProgress.total}
-            </p>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div 
-                className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
-                style={{ width: `${(validationProgress.current / validationProgress.total) * 100}%` }}
-              ></div>
-            </div>
-          </div>
-        )}
-
-        {/* Results */}
-        {validationResults.length > 0 && !isValidating && (
-          <div className="space-y-6">
-            {/* Summary */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Resultados del Análisis Real</h2>
-              
-              <div className="grid md:grid-cols-3 gap-4 mb-6">
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                  <div className="flex items-center">
-                    <CheckCircle className="h-8 w-8 text-green-600 mr-3" />
-                    <div>
-                      <p className="text-2xl font-bold text-green-900">
-                        {validationResults.filter(r => r.status === 'approved').length}
-                      </p>
-                      <p className="text-sm text-green-700">Aprobados</p>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                  <div className="flex items-center">
-                    <AlertTriangle className="h-8 w-8 text-yellow-600 mr-3" />
-                    <div>
-                      <p className="text-2xl font-bold text-yellow-900">
-                        {validationResults.filter(r => r.status === 'warning').length}
-                      </p>
-                      <p className="text-sm text-yellow-700">Con Advertencias</p>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                  <div className="flex items-center">
-                    <AlertTriangle className="h-8 w-8 text-red-600 mr-3" />
-                    <div>
-                      <p className="text-2xl font-bold text-red-900">
-                        {validationResults.filter(r => r.status === 'rejected').length}
-                      </p>
-                      <p className="text-sm text-red-700">Rechazados</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
             </div>
 
-            {/* File Details */}
-            <div className="bg-white rounded-lg shadow overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <h3 className="text-lg font-medium text-gray-900">Análisis Detallado por Archivo</h3>
-              </div>
-              
-              <div className="divide-y divide-gray-200">
-                {validationResults.map((result, index) => (
-                  <div key={index} className="p-6">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center mb-2">
-                          {getStatusIcon(result.status)}
-                          <h4 className="ml-3 text-lg font-medium text-gray-900">{result.file.name}</h4>
-                          <span className={`ml-3 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-${getStatusColor(result.status)}-100 text-${getStatusColor(result.status)}-800`}>
-                            {getStatusText(result.status)}
-                          </span>
+            {/* Upload Section */}
+            {uploadedFiles.length === 0 && (
+              <div className="bg-white rounded-lg shadow p-8">
+                <div className="text-center">
+                  <h2 className="text-2xl font-bold text-gray-900 mb-4">Cargar PDFs para Análisis Real</h2>
+                  
+                  {/* PDF.js Loading Status */}
+                  {isLoadingPdfJs && (
+                    <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <div className="flex items-center justify-center">
+                        <div className="animate-spin h-5 w-5 border-2 border-blue-600 border-t-transparent rounded-full mr-3"></div>
+                        <span className="text-blue-800">Cargando PDF.js...</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {loadError && (
+                    <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+                      <p className="text-red-800 mb-3">Error cargando PDF.js: {loadError}</p>
+                      <button
+                        onClick={retryPdfJsLoad}
+                        className="inline-flex items-center px-3 py-2 text-sm bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+                      >
+                        <RefreshCw className="h-4 w-4 mr-2" />
+                        Reintentar
+                      </button>
+                    </div>
+                  )}
+
+                  {pdfJsLoaded && (
+                    <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
+                      <div className="flex items-center justify-center">
+                        <CheckCircle className="h-5 w-5 text-green-600 mr-2" />
+                        <span className="text-green-800">PDF.js cargado correctamente</span>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-12">
+                    <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                    <div className="space-y-2">
+                      <p className="text-lg text-gray-600">Selecciona archivos PDF arquitectónicos</p>
+                      <p className="text-sm text-gray-500">El sistema extraerá contenido real usando PDF.js (máximo 50MB por archivo)</p>
+                    </div>
+                    
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      multiple
+                      accept=".pdf"
+                      onChange={handleFileUpload}
+                      className="hidden"
+                    />
+                    
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={!pdfJsLoaded || loadError || isLoadingPdfJs}
+                      className={`mt-6 px-6 py-3 rounded-md transition-colors ${
+                        pdfJsLoaded && !loadError && !isLoadingPdfJs
+                          ? 'bg-slate-600 text-white hover:bg-slate-700'
+                          : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      }`}
+                    >
+                      {pdfJsLoaded ? 'Seleccionar PDFs' : 'Cargando PDF.js...'}
+                    </button>
+                  </div>
+
+                  {/* Template Info */}
+                  {currentProject.template && (
+                    <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
+                      <h3 className="text-lg font-medium text-blue-900 mb-3">Template de Revisión: {currentProject.template.name}</h3>
+                      <div className="text-left space-y-2">
+                        <p className="text-sm text-blue-800 mb-3">{currentProject.template.description}</p>
+                        <div className="grid md:grid-cols-2 gap-2">
+                          {currentProject.template.revisions.map((revision, index) => (
+                            <div key={index} className="flex items-center text-sm">
+                              <span className="font-medium text-blue-900 w-8">{revision.number}.</span>
+                              <span className="text-blue-700 flex-1">{revision.description}</span>
+                              {revision.required && <span className="text-red-600 ml-2">*</span>}
+                            </div>
+                          ))}
                         </div>
-                        
-                        {result.pdfInfo && (
-                          <div className="text-sm text-gray-600 mb-3 flex flex-wrap gap-4">
-                            <span><strong>Páginas:</strong> {result.pdfInfo.processedPages}/{result.pdfInfo.numPages}</span>
-                            <span><strong>Tamaño:</strong> {(result.pdfInfo.fileSize / 1024 / 1024).toFixed(1)} MB</span>
-                            <span><strong>Texto extraído:</strong> {result.pdfInfo.textLength} caracteres</span>
-                            {result.pdfInfo.hasMetadata && <span className="text-green-600">✓ Metadata</span>}
-                          </div>
-                        )}
-
-                        {/* Show extracted data preview */}
-                        {result.extractedData && (
-                          <div className="mb-3 bg-gray-50 rounded-lg p-3">
-                            <div className="text-xs text-gray-600 space-y-1">
-                              {result.extractedData.projectName && (
-                                <div><strong>Proyecto:</strong> {result.extractedData.projectName}</div>
-                              )}
-                              {result.extractedData.architect && (
-                                <div><strong>Arquitecto:</strong> {result.extractedData.architect}</div>
-                              )}
-                              {result.extractedData.revisionDates && result.extractedData.revisionDates.length > 0 && (
-                                <div><strong>Revisiones:</strong> {result.extractedData.revisionDates.length} encontradas</div>
-                              )}
-                              {result.extractedData.documentType && (
-                                <div><strong>Tipo:</strong> {result.extractedData.documentType}</div>
-                              )}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Errors */}
-                        {result.errors && result.errors.length > 0 && (
-                          <div className="mb-3">
-                            <h5 className="text-sm font-medium text-red-900 mb-2">Errores:</h5>
-                            <div className="space-y-2">
-                              {result.errors.map((error, errorIndex) => (
-                                <div key={errorIndex} className="bg-red-50 border border-red-200 rounded-md p-3">
-                                  <p className="text-sm text-red-800 font-medium">{error.message}</p>
-                                  {error.details && (
-                                    <p className="text-xs text-red-600 mt-1">{error.details}</p>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Warnings */}
-                        {result.warnings && result.warnings.length > 0 && (
-                          <div className="mb-3">
-                            <h5 className="text-sm font-medium text-yellow-900 mb-2">Advertencias:</h5>
-                            <div className="space-y-2">
-                              {result.warnings.map((warning, warningIndex) => (
-                                <div key={warningIndex} className="bg-yellow-50 border border-yellow-200 rounded-md p-3">
-                                  <p className="text-sm text-yellow-800 font-medium">{warning.message}</p>
-                                  {warning.details && (
-                                    <p className="text-xs text-yellow-600 mt-1">{warning.details}</p>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
+                        <p className="text-xs text-blue-600 mt-3">* = Revisión obligatoria</p>
                       </div>
-                      
-                      <div className="ml-4 flex space-x-2">
-                        <button
-                          onClick={() => setShowFileDetail(result)}
-                          className="text-indigo-600 hover:text-indigo-800 p-2 rounded-md hover:bg-indigo-50 transition-colors"
-                        >
-                          <Eye className="h-5 w-5" />
-                        </button>
+                    </div>
+                  )}
+
+                  <div className="mt-8 bg-amber-50 border border-amber-200 rounded-lg p-6">
+                    <h3 className="text-lg font-medium text-amber-900 mb-3">Errores que Detecta el Sistema</h3>
+                    <div className="text-left space-y-3">
+                      <div className="flex items-start">
+                        <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5 mr-3 flex-shrink-0" />
+                        <div>
+                          <p className="text-sm font-medium text-amber-900">Errores Tipográficos en Nombres</p>
+                          <p className="text-xs text-amber-700">
+                            Detecta errores como "Ortizs" (extra "s"), falta de acentos ("Andres" → "Andrés"), nombres incompletos
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-start">
+                        <FileText className="h-5 w-5 text-amber-600 mt-0.5 mr-3 flex-shrink-0" />
+                        <div>
+                          <p className="text-sm font-medium text-amber-900">Problemas de Alineación</p>
+                          <p className="text-xs text-amber-700">
+                            Detecta texto mal alineado en viñetas, espaciado inconsistente y problemas de formato en títulos
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-start">
+                        <Calendar className="h-5 w-5 text-amber-600 mt-0.5 mr-3 flex-shrink-0" />
+                        <div>
+                          <p className="text-sm font-medium text-amber-900">Errores Lógicos de Fechas</p>
+                          <p className="text-xs text-amber-700">
+                            Detecta cuando múltiples revisiones tienen la misma fecha según el template configurado. También valida secuencia lógica de revisiones.
+                          </p>
+                        </div>
                       </div>
                     </div>
                   </div>
-                ))}
+                </div>
               </div>
-            </div>
-          </div>
+            )}
+
+            {/* Processing State */}
+            {isValidating && (
+              <div className="bg-white rounded-lg shadow p-8 text-center">
+                <div className="animate-spin mx-auto h-12 w-12 border-4 border-blue-200 border-t-blue-600 rounded-full mb-4"></div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Extrayendo contenido real de PDFs...</h3>
+                <p className="text-gray-600 mb-4">
+                  Procesando archivo {validationProgress.current} de {validationProgress.total}
+                </p>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div 
+                    className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                    style={{ width: `${(validationProgress.current / validationProgress.total) * 100}%` }}
+                  ></div>
+                </div>
+              </div>
+            )}
+
+            {/* Results */}
+            {validationResults.length > 0 && !isValidating && (
+              <div className="space-y-6">
+                {/* Summary */}
+                <div className="bg-white rounded-lg shadow p-6">
+                  <h2 className="text-xl font-bold text-gray-900 mb-4">Resultados del Análisis Real</h2>
+                  
+                  <div className="grid md:grid-cols-3 gap-4 mb-6">
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                      <div className="flex items-center">
+                        <CheckCircle className="h-8 w-8 text-green-600 mr-3" />
+                        <div>
+                          <p className="text-2xl font-bold text-green-900">
+                            {validationResults.filter(r => r.status === 'approved').length}
+                          </p>
+                          <p className="text-sm text-green-700">Aprobados</p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                      <div className="flex items-center">
+                        <AlertTriangle className="h-8 w-8 text-yellow-600 mr-3" />
+                        <div>
+                          <p className="text-2xl font-bold text-yellow-900">
+                            {validationResults.filter(r => r.status === 'warning').length}
+                          </p>
+                          <p className="text-sm text-yellow-700">Con Advertencias</p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                      <div className="flex items-center">
+                        <AlertTriangle className="h-8 w-8 text-red-600 mr-3" />
+                        <div>
+                          <p className="text-2xl font-bold text-red-900">
+                            {validationResults.filter(r => r.status === 'rejected').length}
+                          </p>
+                          <p className="text-sm text-red-700">Rechazados</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* File Details */}
+                <div className="bg-white rounded-lg shadow overflow-hidden">
+                  <div className="px-6 py-4 border-b border-gray-200">
+                    <h3 className="text-lg font-medium text-gray-900">Análisis Detallado por Archivo</h3>
+                  </div>
+                  
+                  <div className="divide-y divide-gray-200">
+                    {validationResults.map((result, index) => (
+                      <div key={index} className="p-6">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center mb-2">
+                              {getStatusIcon(result.status)}
+                              <h4 className="ml-3 text-lg font-medium text-gray-900">{result.file.name}</h4>
+                              <span className={`ml-3 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-${getStatusColor(result.status)}-100 text-${getStatusColor(result.status)}-800`}>
+                                {getStatusText(result.status)}
+                              </span>
+                            </div>
+                            
+                            {result.pdfInfo && (
+                              <div className="text-sm text-gray-600 mb-3 flex flex-wrap gap-4">
+                                <span><strong>Páginas:</strong> {result.pdfInfo.processedPages}/{result.pdfInfo.numPages}</span>
+                                <span><strong>Tamaño:</strong> {(result.pdfInfo.fileSize / 1024 / 1024).toFixed(1)} MB</span>
+                                <span><strong>Texto extraído:</strong> {result.pdfInfo.textLength} caracteres</span>
+                                {result.pdfInfo.hasMetadata && <span className="text-green-600">✓ Metadata</span>}
+                              </div>
+                            )}
+
+                            {/* Show extracted data preview */}
+                            {result.extractedData && (
+                              <div className="mb-3 bg-gray-50 rounded-lg p-3">
+                                <div className="text-xs text-gray-600 space-y-1">
+                                  {result.extractedData.projectName && (
+                                    <div><strong>Proyecto:</strong> {result.extractedData.projectName}</div>
+                                  )}
+                                  {result.extractedData.architect && (
+                                    <div><strong>Arquitecto:</strong> {result.extractedData.architect}</div>
+                                  )}
+                                  {result.extractedData.revisionDates && result.extractedData.revisionDates.length > 0 && (
+                                    <div><strong>Revisiones:</strong> {result.extractedData.revisionDates.length} encontradas</div>
+                                  )}
+                                  {result.extractedData.documentType && (
+                                    <div><strong>Tipo:</strong> {result.extractedData.documentType}</div>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Errors */}
+                            {result.errors && result.errors.length > 0 && (
+                              <div className="mb-3">
+                                <h5 className="text-sm font-medium text-red-900 mb-2">Errores:</h5>
+                                <div className="space-y-2">
+                                  {result.errors.map((error, errorIndex) => (
+                                    <div key={errorIndex} className="bg-red-50 border border-red-200 rounded-md p-3">
+                                      <p className="text-sm text-red-800 font-medium">{error.message}</p>
+                                      {error.details && (
+                                        <p className="text-xs text-red-600 mt-1">{error.details}</p>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Warnings */}
+                            {result.warnings && result.warnings.length > 0 && (
+                              <div className="mb-3">
+                                <h5 className="text-sm font-medium text-yellow-900 mb-2">Advertencias:</h5>
+                                <div className="space-y-2">
+                                  {result.warnings.map((warning, warningIndex) => (
+                                    <div key={warningIndex} className="bg-yellow-50 border border-yellow-200 rounded-md p-3">
+                                      <p className="text-sm text-yellow-800 font-medium">{warning.message}</p>
+                                      {warning.details && (
+                                        <p className="text-xs text-yellow-600 mt-1">{warning.details}</p>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                          
+                          <div className="ml-4 flex space-x-2">
+                            <button
+                              onClick={() => setShowFileDetail(result)}
+                              className="text-slate-600 hover:text-slate-800 p-2 rounded-md hover:bg-slate-50 transition-colors"
+                            >
+                              <Eye className="h-5 w-5" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
         )}
+
+        {/* Modals */}
+        {showCreateProject && <ProjectCreationForm />}
+        {showTemplateSelector && <TemplateSelector />}
 
         {/* File Detail Modal */}
         {showFileDetail && (
